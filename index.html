@@ -82,6 +82,8 @@
       .btn-cancel { background-color: var(--secondary); display: none; }
       .btn-update { background-color: var(--warning); color: #000; }
       .btn-group-init { background-color: var(--success); margin-top: 12px; }
+      .btn-save-template { background-color: #d97706 !important; color: #fff; margin-top: 12px; }
+      .btn-save-template:active { background-color: #b45309 !important; }
       .btn-job-save { background-color: var(--info); margin-top: 12px; }
 
       .btn-clear { background-color: transparent; color: var(--danger); border: 2px solid var(--danger); margin-top: 12px; margin-bottom: 40px; }
@@ -135,7 +137,7 @@
       .group-title { font-weight: bold; font-size: 16px; color: var(--text); }
       .group-count { font-size: 12px; color: #666; background: #eee; padding: 2px 6px; border-radius: 10px; }
       
-      .group-actions { display: flex; gap: 6px; }
+      .group-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
       .btn-load { background: var(--primary); color: white; border: none; padding: 8px 0; border-radius: 4px; font-weight: bold; cursor: pointer; flex-grow: 1; font-size: 12px;}
       .btn-barcode-group { background: var(--info); color: white; border: none; padding: 8px 0; border-radius: 4px; font-weight: bold; cursor: pointer; flex-grow: 1; font-size: 12px;}
       .btn-view { background: var(--info); color: white; border: none; padding: 8px 0; border-radius: 4px; font-weight: bold; cursor: pointer; flex-grow: 1; font-size: 12px;}
@@ -231,7 +233,9 @@
          prompt modals (such as “Save Job Card”) that otherwise bleed onto page 1. */
       body > *:not(#print-layout) { display: none !important; }
       html, body { margin: 0 !important; padding: 0 !important; width: 100%; background: #fff !important; color: #000 !important; }
-      #print-layout { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5mm; width: 100%; margin: 0; padding: 0; }
+      body > #print-layout { display: grid !important; position: static !important; visibility: visible !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5mm; width: 100%; margin: 0; padding: 0; }
+      #print-layout * { visibility: visible !important; }
+      .print-sheet-title { grid-column: 1 / -1 !important; justify-self: stretch !important; align-self: stretch !important; display: block !important; box-sizing: border-box !important; width: 100% !important; margin: 0 0 2mm !important; padding: 0 0 3mm !important; border-bottom: 1.2pt solid #000; font-family: Arial, sans-serif; font-size: 26pt; line-height: 1.15; font-weight: bold; text-align: center !important; text-transform: uppercase; overflow-wrap: anywhere; }
       .print-card { border: 1px solid #000; border-radius: 3px; padding: 5mm 3mm; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; height: 45mm; min-width: 0; box-sizing: border-box; page-break-inside: avoid; break-inside: avoid; overflow: hidden; background: #fff !important; }
       .print-part { font-size: 16pt; font-weight: bold; margin-bottom: 2mm; font-family: monospace; line-height: 1.1; }
       .print-loc { font-size: 9pt; font-weight: bold; margin-bottom: 1.5mm; border: 1px solid #000; padding: 1px 4px; border-radius: 2px; display: inline-block; }
@@ -267,15 +271,27 @@
 
     /* Saved Job Cards / Template Groups / Scan History swipe area */
     .saved-sections-swipe{overflow:hidden;margin-top:18px;border-radius:16px;touch-action:pan-y;}
-    .saved-sections-track{display:flex;width:300%;transition:transform .25s ease;will-change:transform;}
+    .saved-sections-track{display:flex;width:300%;transition:transform .25s ease,height .2s ease;will-change:transform,height;}
     .saved-section-slide{width:33.333333%;flex:0 0 33.333333%;box-sizing:border-box;padding:0 1px;}
     .saved-section-slide .groups-section{margin-top:0;}
     .saved-section-tabs{display:flex;gap:8px;margin:0 0 8px;}
     .saved-section-tab{flex:1;border:1px solid #cbd8e5;background:#fff;color:#526477;border-radius:9px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;}
-    .saved-section-tab.active{background:#0b5cab;color:#fff;border-color:#0b5cab;}.setting-row{display:flex;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:1px solid #e5ebf1;cursor:pointer}.setting-row:last-of-type{border-bottom:0}.setting-row input{margin-top:3px;width:20px;height:20px}.setting-row span{display:flex;flex-direction:column;gap:3px}.setting-row small{color:#667788;font-size:12px;line-height:1.35}.simple-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:10002;align-items:center;justify-content:center;padding:18px;box-sizing:border-box}.active-list-stats{font-size:12px;color:#647588;margin:-14px 0 10px}.scan-success-flash{animation:scanFlash .45s ease}@keyframes scanFlash{0%{transform:scale(1)}50%{transform:scale(1.015)}100%{transform:scale(1)}}
+    .saved-section-tab.active{background:#0b5cab;color:#fff;border-color:#0b5cab;}
+    .group-actions-secondary{display:grid;grid-template-columns:1fr 1fr;gap:8px;grid-column:1 / -1;margin-top:0;}
+    .group-actions-secondary button{min-height:42px;}
+    .group-actions-secondary button:nth-child(1),.group-actions-secondary button:nth-child(2){grid-column:1 / -1;}
+    .btn-more-group{min-height:42px;border:1px solid #cbd8e5;background:#f4f7fa;color:#526477;border-radius:8px;font-weight:700;cursor:pointer;}
+    .btn-more-group:active{transform:translateY(1px);}
+.setting-row{display:flex;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:1px solid #e5ebf1;cursor:pointer}.setting-row:last-of-type{border-bottom:0}.setting-row input{margin-top:3px;width:20px;height:20px}.setting-row span{display:flex;flex-direction:column;gap:3px}.setting-row small{color:#667788;font-size:12px;line-height:1.35}.simple-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:10002;align-items:center;justify-content:center;padding:18px;box-sizing:border-box}.active-list-stats{font-size:12px;color:#647588;margin:-14px 0 10px}.scan-success-flash{animation:scanFlash .45s ease}@keyframes scanFlash{0%{transform:scale(1)}50%{transform:scale(1.015)}100%{transform:scale(1)}}
     .workflow-label{margin:18px 0 8px;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#526477}
 
 
+.job-actions-collapsed{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;}
+.job-actions-collapsed > button{min-height:42px;}
+.job-actions-collapsed .job-extra-actions{grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.job-actions-collapsed .job-extra-actions button{min-height:42px;}
+.btn-job-more{background:#f4f7fa;color:#526477;border:1px solid #cbd8e5;border-radius:8px;padding:10px 12px;font-weight:700;cursor:pointer;}
+.btn-job-more:active{transform:translateY(1px);}
 </style>
 </head>
 <body>
@@ -320,7 +336,7 @@
         <h2 class="job-modal-title"> Search Part Database</h2>
       </div>
       <div class="prompt-group" style="margin-bottom: 10px;">
-        <label for="search-input-box">Search by Part Number or Description (e.g. thermostat)</label>
+        <label for="search-input-box">Search by Part Number, Description or Shelf Location (e.g. 5D4)</label>
         <input type="text" id="search-input-box" placeholder="Type keyword..." oninput="performDatabaseSearch(this.value)">
       </div>
       <div class="search-results-list" id="search-results-container">
@@ -366,7 +382,7 @@
         <ol>
           <li>Tap <strong>Scan Shelf Barcode</strong> near the top of the screen. This is the single camera-scan button.</li>
           <li>Allow camera access if prompted, then point the phone camera at the barcode on the shelf/part.</li>
-          <li>Check the Part Number field. If the shelf barcode cannot be read, type the part number manually instead.</li>
+          <li>Check the Part Number field. If the shelf barcode cannot be read, type the numbers after the prefilled <strong>PI-</strong> prefix. The app adds the prefix automatically when saving. Scanning still fills the complete barcode value, so the prefix will not be duplicated.</li>
           <li>Optionally add a shelf location or description, and set <strong>Qty</strong> to the number of times that part needs to be booked out.</li>
           <li>If <strong>Automatically add scanned parts</strong> is enabled, a successful scan is added to the list automatically. Otherwise tap <strong>Add to List</strong>. Repeat for each part you need to collate.</li>
         </ol>
@@ -375,8 +391,9 @@
         <ul>
           <li>Review the <strong>Active Scan List</strong> and correct any part number, quantity or description before using the barcodes.</li>
           <li>When the list is ready, tap <strong>Generate Barcodes</strong>. This opens the booking-out view on your phone.</li>
-          <li>Tap <strong>Save This Part Set</strong> for a reusable template, or <strong>Save As Job Card</strong> to save it under a job/bus number. Saved sets can be loaded again later.</li>
-          <li>Use <strong>Find a part</strong> or the saved-set filter to find previously used parts and templates. Favourite frequently used sets, or use <strong>Last Used Set</strong> for the most recent one.</li>
+          <li>Tap <strong>Save As Job Card</strong> to create a new job card for the current list, using the job/bus number when prompted.</li>
+          <li>Tap <strong>Save This Part Set</strong> to create a reusable template. Template Groups can be loaded and edited separately.</li>
+          <li>Use <strong>Find a part</strong> to search by part number, description or shelf location, or use the saved-set filter to find previously used parts and templates. Favourite frequently used sets, or use <strong>Last Used Set</strong> for the most recent one.</li>
         </ul>
 
         <h3>3. At the booking-out computer: scan the phone</h3>
@@ -392,7 +409,7 @@
           <li>Generated barcodes are a convenient substitute for manually typing the part number; they do not automatically transfer the list to the computer.</li>
           <li>Your saved sets and history are stored in this browser on this phone. Use <strong>Backup data</strong> periodically, especially before changing phones or clearing browser data.</li>
           <li>Open <strong>Settings</strong> to control automatic scan-to-list, sound, vibration and the barcode screen wake-lock behaviour.</li>
-          <li>For printed labels, use <strong>Print Barcode Labels</strong> on a saved template when a physical set is useful. For normal jobs, scan the barcodes displayed on the phone.</li>
+          <li>For printed labels, use <strong>Print Current List</strong> from Tools when a physical set is useful. Enter a simple heading for the sheet, such as <strong>SCANIA BRAKE PARTS</strong>. For normal jobs, scan the barcodes displayed on the phone.</li>
         </ul>
       </div>
 
@@ -456,11 +473,12 @@
       <button class="quick-action" onclick="openSearchModal()"><span class="svg-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"></circle><path d="m16 16 5 5"></path></svg></span>Find a part</button>
     </div>
     <details class="mobile-tools">
-      <summary>Backup and other tools</summary>
+      <summary>Tools</summary>
       <div class="quick-grid">
         <button class="quick-action" onclick="openGuideModal()">How it works</button>
         <button class="quick-action quick-success" onclick="exportAllData()">Backup data</button>
         <button class="quick-action quick-warning" onclick="document.getElementById('backup-file-input').click()">Import backup</button>
+        <button class="quick-action" onclick="printCurrentList()">Print Current List</button>
         <button class="quick-action" onclick="exportActiveListCSV()">Export active list CSV</button>
         <button class="quick-action" onclick="openSettingsModal()">Settings</button>
         <button class="quick-action" onclick="openLastUsedGroup()">Last Used Set</button>
@@ -474,7 +492,7 @@
       <div class="input-row-top">
         <div class="part-col">
           <label for="partNo">Part Number</label>
-          <input type="text" id="partNo" placeholder="" oninput="lookupPartData(this.value)">
+          <input type="text" id="partNo" value="PI-" placeholder="PI-" oninput="lookupPartData(this.value)">
         </div>
         <div class="loc-col">
           <label for="loc">Shelf location (optional)</label>
@@ -533,8 +551,8 @@
     <!-- Main Actions -->
     <div id="action-buttons" style="display: none;">
       <button class="btn btn-group-init mobile-show-barcode" onclick="showActiveListBarcodes()">Generate Barcodes</button>
-      <button class="btn btn-job-save" onclick="saveActiveListAsTemplate()">Save This Part Set</button>
       <button class="btn btn-job-save" onclick="openJobPromptModal('save')">Save As Job Card</button>
+      <button class="btn btn-save-template" onclick="saveActiveListAsTemplate()">Save This Part Set</button>
       <button class="btn btn-clear" onclick="clearAllLabels()">Clear Active List</button>
     </div>
 
@@ -593,8 +611,9 @@
         </div>
       </div>
     </div>
+  </div>
 
-  <!-- PRINT UI -->
+  <!-- PRINT UI: kept outside the mobile app container so print CSS can expose it reliably. -->
   <div id="print-layout"></div>
 
   <script>
@@ -726,7 +745,7 @@
       saveJobsData();
       saveHistoryData();
 
-      document.getElementById('partNo').value = "";
+      document.getElementById('partNo').value = 'PI-';
       document.getElementById('loc').value = "";
       document.getElementById('desc').value = "";
       document.getElementById('itemQty').value = "1";
@@ -748,6 +767,14 @@
     };
 
     let savedSectionIndex = 0;
+    function updateSavedSectionHeight(){
+      const track = document.getElementById('saved-sections-track');
+      if(!track) return;
+      const slides = track.querySelectorAll('.saved-section-slide');
+      const activeSlide = slides[savedSectionIndex];
+      if(activeSlide) track.style.height = `${activeSlide.scrollHeight}px`;
+    }
+
     function showSavedSection(index){
       savedSectionIndex = Math.max(0, Math.min(2, Number(index) || 0));
       const track = document.getElementById('saved-sections-track');
@@ -755,11 +782,30 @@
       document.getElementById('saved-tab-jobs')?.classList.toggle('active', savedSectionIndex===0);
       document.getElementById('saved-tab-groups')?.classList.toggle('active', savedSectionIndex===1);
       document.getElementById('saved-tab-history')?.classList.toggle('active', savedSectionIndex===2);
+      requestAnimationFrame(updateSavedSectionHeight);
     }
     (function setupSavedSectionSwipe(){
       let startX = null;
-      document.addEventListener('touchstart', e=>{ const area=document.getElementById('saved-sections-swipe'); if(area && e.target.closest('#saved-sections-swipe')) startX=e.touches[0].clientX; }, {passive:true});
-      document.addEventListener('touchend', e=>{ if(startX===null)return; const dx=e.changedTouches[0].clientX-startX; startX=null; if(Math.abs(dx)>45) showSavedSection(savedSectionIndex + (dx<0 ? 1 : -1)); }, {passive:true});
+      let startY = null;
+      document.addEventListener('touchstart', e=>{
+        const area=document.getElementById('saved-sections-swipe');
+        if(area && e.target.closest('#saved-sections-swipe')){
+          startX=e.touches[0].clientX;
+          startY=e.touches[0].clientY;
+        }
+      }, {passive:true});
+      document.addEventListener('touchend', e=>{
+        if(startX===null || startY===null)return;
+        const dx=e.changedTouches[0].clientX-startX;
+        const dy=e.changedTouches[0].clientY-startY;
+        startX=null;
+        startY=null;
+        const horizontalDistance=Math.abs(dx);
+        const verticalDistance=Math.abs(dy);
+        if(horizontalDistance>=90 && horizontalDistance>verticalDistance*1.35){
+          showSavedSection(savedSectionIndex + (dx<0 ? 1 : -1));
+        }
+      }, {passive:true});
     })();
 
     // --- DATABASE SEARCH MODAL CONTROLS ---
@@ -789,7 +835,7 @@
 
       // Search History
       scanHistory.forEach(h => {
-        if (h.partNo.includes(query) || (h.desc && h.desc.toUpperCase().includes(query))) {
+        if (String(h.partNo || '').toUpperCase().includes(query) || (h.desc && h.desc.toUpperCase().includes(query)) || (h.loc && h.loc.toUpperCase().includes(query))) {
           matchedPartsMap.set(h.partNo, { partNo: h.partNo, desc: h.desc || '', loc: h.loc || '' });
         }
       });
@@ -797,7 +843,7 @@
       // Search Jobs
       savedJobs.forEach(job => {
         job.items.forEach(item => {
-          if (item.partNo.includes(query) || (item.desc && item.desc.toUpperCase().includes(query))) {
+          if (String(item.partNo || '').toUpperCase().includes(query) || (item.desc && item.desc.toUpperCase().includes(query)) || (item.loc && item.loc.toUpperCase().includes(query))) {
             matchedPartsMap.set(item.partNo, { partNo: item.partNo, desc: item.desc || '', loc: item.loc || '' });
           }
         });
@@ -806,7 +852,7 @@
       // Search Templates
       savedGroups.forEach(group => {
         group.items.forEach(item => {
-          if (item.partNo.includes(query) || (item.desc && item.desc.toUpperCase().includes(query))) {
+          if (String(item.partNo || '').toUpperCase().includes(query) || (item.desc && item.desc.toUpperCase().includes(query)) || (item.loc && item.loc.toUpperCase().includes(query))) {
             matchedPartsMap.set(item.partNo, { partNo: item.partNo, desc: item.desc || '', loc: item.loc || '' });
           }
         });
@@ -857,9 +903,18 @@
       document.getElementById('guide-modal').style.display = 'none';
     }
 
+    // Manual entry defaults to PI-. Scanned/database values remain full part numbers.
+    function normalizePartNumber(value, addDefaultPrefix = false) {
+      let partNo = String(value || '').toUpperCase().replace(/[^A-Z0-9\-]/g, '').trim();
+      // Collapse accidental repeated PI- prefixes without changing other barcode formats.
+      while (partNo.startsWith('PI-PI-')) partNo = partNo.slice(3);
+      if (addDefaultPrefix && partNo && !partNo.startsWith('PI-')) partNo = `PI-${partNo}`;
+      return partNo;
+    }
+
     // --- AUTO-LOOKUP DESCRIPTION & LOCATION LOGIC ---
     function lookupPartData(val) {
-      const cleanPart = String(val || '').toUpperCase().replace(/[^A-Z0-9\-]/g, '').trim();
+      const cleanPart = normalizePartNumber(val, true);
       const descInput = document.getElementById('desc');
       const locInput = document.getElementById('loc');
       if (cleanPart !== lastLookupPart) {
@@ -893,7 +948,7 @@
         const config = { fps: 15, qrbox: { width: 280, height: 140 }, experimentalFeatures: { useBarCodeDetectorIfSupported: true }, formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.CODE_39, Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.UPC_A] };
         await html5QrCode.start({ facingMode: 'environment' }, config, async decodedText => {
           if (generation !== scannerGeneration) return;
-          const cleanText = String(decodedText).toUpperCase().replace(/[^A-Z0-9\-]/g, '').slice(0, 100);
+          const cleanText = normalizePartNumber(decodedText).slice(0, 100);
           await stopScanner();
           if (!cleanText) { showNotification('Scanned barcode did not contain a valid part number.'); return; }
           document.getElementById('partNo').value = cleanText;
@@ -942,7 +997,7 @@
       const descInput = document.getElementById('desc');
       const qtyInput = document.getElementById('itemQty');
       
-      const partNo = partNoInput.value.toUpperCase().replace(/[^A-Z0-9\-]/g, '');
+      const partNo = normalizePartNumber(partNoInput.value, true);
       const loc = locInput.value.trim().toUpperCase().replace(/[^A-Z0-9\-]/g, '');
       const desc = descInput.value.trim().toUpperCase();
       const rawQty = qtyInput.value.trim();
@@ -980,7 +1035,7 @@
       }
 
       saveData();
-      partNoInput.value = ""; 
+      partNoInput.value = 'PI-'; 
       locInput.value = "";
       descInput.value = ""; 
       qtyInput.value = "1";
@@ -1006,7 +1061,7 @@
 
     function cancelEdit() {
       editingId = null;
-      document.getElementById('partNo').value = ""; 
+      document.getElementById('partNo').value = 'PI-'; 
       document.getElementById('loc').value = "";
       document.getElementById('desc').value = ""; 
       document.getElementById('itemQty').value = "1";
@@ -1041,6 +1096,7 @@
         labels = [];
         saveData();
         renderUI();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         showNotification("Active list cleared.");
       });
     }
@@ -1448,13 +1504,51 @@
       });
     }
 
-    async function printGroup(groupId) {
-      const group = savedGroups.find(g => g.id === groupId);
-      if (!group || !Array.isArray(group.items) || group.items.length === 0) return;
+    async function printCurrentList() {
+      if (!Array.isArray(labels) || labels.length === 0) {
+        showNotification("The active list is empty.");
+        return;
+      }
+
+      // Prefer the actual saved Job Card or Template Group name as the print heading.
+      // A template loaded into the active list keeps its ID in lastUsedGroupId.
+      let suggestedHeading = '';
+      if (contextEditing && contextEditing.type === 'job') {
+        const job = savedJobs.find(item => item.id === contextEditing.id);
+        const jobNo = contextEditing.name || (job && (job.jobNo || job.name)) || '';
+        const jobDescription = contextEditing.description || (job && job.description) || '';
+        suggestedHeading = [jobNo, jobDescription].filter(Boolean).join(' - ');
+      } else if (contextEditing && contextEditing.type === 'group') {
+        const group = savedGroups.find(item => item.id === contextEditing.id);
+        suggestedHeading = contextEditing.name || (group && group.name) || '';
+      } else if (lastUsedGroupId) {
+        const lastGroup = savedGroups.find(item => item.id === lastUsedGroupId);
+        if (lastGroup) suggestedHeading = lastGroup.name || '';
+      }
+
+      let sheetTitle = suggestedHeading.trim();
+      // Only ask for a heading when this active list is not associated with a saved job/template.
+      if (!sheetTitle) {
+        const enteredHeading = window.prompt('Heading for the printed sheet (e.g. SCANIA BRAKE PARTS):', '');
+        if (enteredHeading === null) return;
+        sheetTitle = enteredHeading.trim();
+      }
+      if (!sheetTitle) {
+        showNotification('Please enter a heading for the printed sheet.');
+        return;
+      }
+
       const printContainer = document.getElementById('print-layout');
       printContainer.className = '';
       printContainer.replaceChildren();
-      for (const item of group.items) {
+
+      const title = document.createElement('h1');
+      title.className = 'print-sheet-title';
+      title.style.cssText = 'grid-column:1 / -1; display:block; width:100%; box-sizing:border-box; text-align:center;';
+      title.textContent = sheetTitle;
+      printContainer.appendChild(title);
+
+      for (const item of labels) {
         const count = validQty(item.qty);
         for (let i = 0; i < count; i++) {
           const printCard = document.createElement('div');
@@ -1469,9 +1563,11 @@
           catch (error) { console.error('Could not render print barcode:', error); }
         }
       }
-      requestAnimationFrame(() => requestAnimationFrame(() => {
+
+      printContainer.offsetHeight;
+      setTimeout(() => {
         try { window.print(); } catch (error) { console.error('Print blocked:', error); showNotification('Unable to open print dialog.'); }
-      }));
+      }, 350);
     }
 
     function openLastUsedGroup(){ const group=savedGroups.find(g=>g.id===lastUsedGroupId); if(!group){ showNotification('No recently used set yet.'); return; } loadTemplateToList(group.id); }
@@ -1568,10 +1664,13 @@
                 </div>
                 <div style="font-size:12px; color:#888;">${escapeHTML(job.date)}</div>
               </div>
-              <div class="group-actions">
+              <div class="group-actions job-actions-collapsed">
                 <button class="btn-view" onclick="viewJob('${job.id}')">View</button>
-                <button class="btn-edit-group" onclick="loadContextToWorkbench('job', '${job.id}')">Edit</button>
-                <button class="btn-delete-group" onclick="deleteJob('${job.id}')">Delete</button>
+                <button class="btn-job-more" type="button" onclick="toggleJobActions(this)">More ▾</button>
+                <div class="job-extra-actions" style="display:none;">
+                  <button class="btn-edit-group" onclick="loadContextToWorkbench('job', '${job.id}')">Edit</button>
+                  <button class="btn-delete-group" onclick="deleteJob('${job.id}')">Delete</button>
+                </div>
               </div>
             </div>
           `;
@@ -1606,12 +1705,12 @@
               </div>
               <div class="group-actions">
                 <button class="btn-load" onclick="loadTemplateToList('${group.id}')">Load to List</button>
-                <button class="btn-barcode-group" onclick="viewGroupBarcodes('${group.id}')">Screen Barcodes</button>
-                <button class="btn-print-group" onclick="printGroup('${group.id}')">Print Barcode Labels</button>
-                <button class="btn-action edit" onclick="duplicateGroup('${group.id}')">Duplicate</button>
-                <button class="btn-action edit" onclick="exportGroupCSV('${group.id}')">Export CSV</button>
-                <button class="btn-edit-group" onclick="loadContextToWorkbench('group', '${group.id}')">Edit</button>
-                <button class="btn-delete-group" onclick="deleteGroup('${group.id}')">Delete</button>
+                <button class="btn-more-group" type="button" onclick="toggleGroupActions('${group.id}')" aria-expanded="false" aria-controls="group-actions-${group.id}">More ▾</button>
+                <div class="group-actions-secondary" id="group-actions-${group.id}" style="display:none;">
+                  <button class="btn-barcode-group" onclick="viewGroupBarcodes('${group.id}')">Screen Barcodes</button>
+                    <button class="btn-edit-group" onclick="loadContextToWorkbench('group', '${group.id}')">Edit</button>
+                  <button class="btn-delete-group" onclick="deleteGroup('${group.id}')">Delete</button>
+                </div>
               </div>
             </div>
           `;
@@ -1648,6 +1747,17 @@
       }
       const savedGroupFilter = document.getElementById('group-filter');
       if (savedGroupFilter) filterSavedGroups(savedGroupFilter.value);
+      requestAnimationFrame(updateSavedSectionHeight);
+    }
+
+    function toggleJobActions(button) {
+      const card = button.closest('.job-card');
+      if (!card) return;
+      const extra = card.querySelector('.job-extra-actions');
+      if (!extra) return;
+      const isOpen = extra.style.display !== 'none';
+      extra.style.display = isOpen ? 'none' : 'flex';
+      button.textContent = isOpen ? 'More ▾' : 'Less ▴';
     }
 
     // Saved-set utilities focused on parts collation, not stock management.
@@ -1659,6 +1769,16 @@
         card.style.display = !query || text.includes(query) ? '' : 'none';
       });
 
+    }
+
+    function toggleGroupActions(groupId){
+      const panel = document.getElementById(`group-actions-${groupId}`);
+      const button = document.querySelector(`[aria-controls="group-actions-${groupId}"]`);
+      if(!panel || !button) return;
+      const isOpen = panel.style.display !== 'none';
+      panel.style.display = isOpen ? 'none' : 'grid';
+      button.setAttribute('aria-expanded', String(!isOpen));
+      button.textContent = isOpen ? 'More ▾' : 'Less ▴';
     }
 
     function toggleGroupFavorite(groupId){ const group=savedGroups.find(g=>g.id===groupId); if(!group)return; group.favorite=!group.favorite; saveGroupsData(); renderUI(); showNotification(group.favorite?'Added to favourites.':'Removed from favourites.'); }
