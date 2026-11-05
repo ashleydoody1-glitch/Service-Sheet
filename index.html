@@ -1,1828 +1,231 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Part Picker | Parts Collation & Barcode Prep</title>
-  
-  <!-- Standard & Mobile Web App Icons -->
-  <link rel="icon" type="image/svg+xml" href="https://api.iconify.design/lucide:box.svg?color=%230056b3">
-  <link rel="apple-touch-icon" href="https://api.iconify.design/lucide:box.svg?color=%230056b3">
-  
-  <!-- PWA Manifest -->
-  <link rel="manifest" href='data:application/manifest+json,{"name":"Part Picker","short_name":"PartPicker","start_url":".","display":"standalone","background_color":"#f4f7f6","theme_color":"#0056b3","icons":[{"src":"https://api.iconify.design/lucide:box.svg?color=%230056b3","sizes":"192x192","type":"image/svg+xml"}]}'>
-  <meta name="theme-color" content="#0056b3">
-
-  <!-- JsBarcode for generating printable barcode labels and screen barcodes -->
-  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-  <!-- Html5-Qrcode for scanning barcodes via camera -->
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-  
-  <style>
-    /* --- MOBILE APP UI STYLES (Screen Only) --- */
-    :root {
-      --primary: #0056b3;
-      --primary-dark: #004494;
-      --secondary: #6c757d;
-      --danger: #dc3545;
-      --success: #28a745;
-      --warning: #ffc107;
-      --info: #17a2b8;
-      --bg: #f4f7f6;
-      --card-bg: #ffffff;
-      --text: #333333;
-    }
-    
-    * { -webkit-tap-highlight-color: transparent; }
-    button, input { font: inherit; }
-    button:focus-visible, input:focus-visible { outline: 3px solid #80bdff; outline-offset: 2px; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: var(--bg);
-      color: var(--text);
-    }
-
-    @media screen {
-      .app-container { max-width: 600px; margin: 0 auto; padding: 20px; }
-      
-      h1 { font-size: 24px; text-align: center; margin-bottom: 20px; color: var(--primary); }
-      
-      .btn-guide-top { background-color: var(--secondary); color: white; border: none; border-radius: 8px; padding: 10px 16px; font-size: 14px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity 0.2s; }
-      .btn-guide-top:active { opacity: 0.8; }
-
-      .btn-search-top { background-color: var(--info); color: white; border: none; border-radius: 8px; padding: 10px 16px; font-size: 14px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 24px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity 0.2s; }
-      .btn-search-top:active { opacity: 0.8; }
-
-      .input-card { background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 24px; transition: all 0.3s ease; }
-      .input-card.editing { border: 2px solid var(--warning); box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3); }
-      
-      label { font-weight: 600; display: block; margin-bottom: 6px; font-size: 13px; color: #555; }
-      
-      .input-row-top { display: flex; gap: 8px; margin-bottom: 16px; align-items: flex-end; }
-    .inline-scan-btn{width:72px;min-height:46px;justify-content:center;padding:10px 8px;margin:0;flex:none;}
-      .part-col { flex-grow: 1; }
-      .loc-col { width: 130px; flex-shrink: 0; }
-
-      .input-row { margin-bottom: 16px; }
-      .input-row-split { display: flex; gap: 10px; margin-bottom: 16px; align-items: flex-end; }
-      .qty-container { width: 90px; flex-shrink: 0; }
-
-      input[type="text"], input[type="number"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; transition: border-color 0.2s; background: #fff; }
-      input[type="text"] { text-transform: uppercase; }
-      input[type="text"]:focus, input[type="number"]:focus { outline: none; border-color: var(--primary); }
-      
-
-      .btn { display: block; width: 100%; padding: 14px; background-color: var(--primary); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
-      .btn:active { opacity: 0.8; }
-      
-      .button-group { display: flex; gap: 10px; }
-      
-      .btn-cancel { background-color: var(--secondary); display: none; }
-      .btn-update { background-color: var(--warning); color: #000; }
-      .btn-group-init { background-color: var(--success); margin-top: 12px; }
-      .btn-save-template { background-color: #d97706 !important; color: #fff; margin-top: 12px; }
-      .btn-save-template:active { background-color: #b45309 !important; }
-      .btn-job-save { background-color: var(--info); margin-top: 12px; }
-
-      .btn-clear { background-color: transparent; color: var(--danger); border: 2px solid var(--danger); margin-top: 12px; margin-bottom: 40px; }
-      
-      .list-header { font-weight: bold; margin-top: 30px; margin-bottom: 12px; font-size: 18px; display: flex; justify-content: space-between; align-items: center; }
-      
-      /* Workbench Editing Banner */
-      .editing-banner { background: var(--warning); color: #000; padding: 12px 15px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; display: flex; flex-direction: column; gap: 10px; }
-      .editing-banner-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-      .editing-banner-title { flex-grow: 1; }
-      .btn-banner-rename { background: transparent; border: 1px solid #000; padding: 4px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px; }
-      .btn-banner-rename:active { background: rgba(0,0,0,0.1); }
-      .btn-banner-save { background: var(--success); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; }
-      .btn-banner-cancel { background: transparent; color: #000; border: 1px solid #000; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; }
-
-      .scanned-list { background: var(--card-bg); border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden; margin-bottom: 10px; }
-      .scanned-item { padding: 12px 16px; border-bottom: 1px solid #eee; display: flex; flex-direction: column; gap: 6px; }
-      .scanned-item:last-child { border-bottom: none; }
-
-      .item-part-line { font-weight: bold; font-size: 18px; font-family: monospace; color: var(--primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .item-desc-line { font-size: 13px; color: #555; font-weight: 500; word-break: break-word; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
-      
-      .item-footer-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; border-top: 1px solid #f2f2f2; padding-top: 8px; margin-top: 2px; }
-
-      /* Qty & Location Badges */
-      .qty-badge { background: #e2e8f0; color: #1e293b; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: bold; display: inline-flex; align-items: center; gap: 4px; }
-      .qty-btn { background: none; border: none; font-weight: bold; cursor: pointer; padding: 0 4px; font-size: 14px; color: #555; }
-      .qty-btn:hover { color: var(--primary); }
-      
-      .loc-badge { background: #e2e8f0; color: #1e293b; padding: 2px 6px; border-radius: 6px; font-size: 11px; font-weight: bold; display: inline-flex; align-items: center; gap: 3px; letter-spacing: 0.5px; }
-      .oos-badge { color: var(--danger); border: 1px solid var(--danger); padding: 1px 4px; border-radius: 4px; font-size: 11px; font-weight: bold; display: inline-block; white-space: nowrap; line-height: 1.2; }
-
-      .item-actions { display: flex; gap: 6px; }
-      .btn-action { background: transparent; border: 1px solid #ccc; padding: 6px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600; }
-      .btn-action.oos { color: #666; border-color: #ccc; }
-      .btn-action.oos.active { background-color: var(--danger); color: white; border-color: var(--danger); }
-      .btn-action.edit { color: var(--primary); border-color: var(--primary); }
-      .btn-action.remove { color: var(--danger); border-color: var(--danger); }
-
-      .empty-state { padding: 20px; text-align: center; color: #888; font-style: italic; }
-
-      /* Groups & Jobs Section */
-      .groups-section { margin-top: 30px; border-top: 2px dashed #ccc; padding-top: 15px; }
-      .job-section { border-top: 2px dashed var(--info); }
-      
-      .group-card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px;}
-      .job-card { border-left: 4px solid var(--info); }
-      
-      .group-header { display: flex; justify-content: space-between; align-items: center; gap:8px; }
-      .favorite-btn{border:1px solid #d6dee7;background:#fff;border-radius:9px;width:38px;height:34px;font-size:20px;color:#8a98a6;cursor:pointer}.favorite-btn.active{color:#e09a13;background:#fff8e7}.last-used-badge{font-size:10px;background:#eaf3ff;color:#07529b;padding:2px 6px;border-radius:8px;font-weight:700}
-      .group-title { font-weight: bold; font-size: 16px; color: var(--text); }
-      .group-count { font-size: 12px; color: #666; background: #eee; padding: 2px 6px; border-radius: 10px; }
-      
-      .group-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-      .btn-load { background: var(--primary); color: white; border: none; padding: 8px 0; border-radius: 4px; font-weight: bold; cursor: pointer; flex-grow: 1; font-size: 12px;}
-      .btn-barcode-group { background: var(--info); color: white; border: none; padding: 8px 0; border-radius: 4px; font-weight: bold; cursor: pointer; flex-grow: 1; font-size: 12px;}
-      .btn-view { background: var(--info); color: white; border: none; padding: 8px 0; border-radius: 4px; font-weight: bold; cursor: pointer; flex-grow: 1; font-size: 12px;}
-      .btn-print-group { background: var(--success); color: white; border: none; padding: 8px 0; border-radius: 4px; font-weight: bold; cursor: pointer; flex-grow: 1; font-size: 12px;}
-      .btn-edit-group { background: var(--secondary); color: white; border: none; padding: 8px 0; border-radius: 4px; font-weight: bold; cursor: pointer; flex-grow: 1; font-size: 12px;}
-      .btn-delete-group { background: transparent; color: var(--danger); border: 1px solid var(--danger); padding: 8px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;}
-
-      /* Fullscreen Scanner Modal */
-      #scanner-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box; }
-      #reader { width: 100%; max-width: 500px; background: black; }
-      .btn-close-scanner { margin-top: 20px; background: var(--danger); color: white; padding: 12px 24px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; max-width: 500px; }
-
-      /* In-App Custom Dialog Modal */
-      #job-prompt-modal, #custom-confirm-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 10001; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
-      .prompt-card { background: white; width: 100%; max-width: 400px; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
-      .prompt-title { font-size: 18px; font-weight: bold; color: var(--primary); margin: 0; }
-      .prompt-group { display: flex; flex-direction: column; gap: 6px; }
-      .prompt-buttons { display: flex; gap: 10px; margin-top: 5px; }
-      .btn-prompt-save { flex: 1; background: var(--success); color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 15px; }
-      .btn-prompt-cancel { flex: 1; background: var(--secondary); color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 15px; }
-
-      /* Database Search Modal */
-      #search-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 10002; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
-      .search-modal-content { background: #fff; width: 100%; max-width: 500px; border-radius: 12px; padding: 20px; max-height: 85vh; overflow-y: auto; display: flex; flex-direction: column; }
-      .search-results-list { margin-top: 15px; display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow-y: auto; }
-
-      /* Job/Barcode Carousel & User Guide Modal Viewer */
-      #job-modal, #guide-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 10000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
-      .job-modal-content { background: #fff; width: 100%; max-width: 500px; border-radius: 12px; padding: 20px; max-height: 85vh; overflow-y: auto; display: flex; flex-direction: column; }
-      .job-modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 15px; }
-      .job-modal-title { font-size: 20px; font-weight: bold; color: var(--info); margin: 0; word-break: break-word; }
-      .job-modal-date { font-size: 13px; color: #888; white-space: nowrap; }
-      
-      .job-modal-tabs { display: flex; gap: 10px; margin-bottom: 15px; }
-      .tab-btn { flex: 1; padding: 10px; background: #eee; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; }
-      .tab-btn.active { background: var(--info); color: white; }
-
-      .tab-content { display: none; flex-direction: column; gap: 10px; }
-      .tab-content.active { display: flex; }
-
-      /* User Guide Modal Formatting */
-      .guide-body { font-size: 14px; line-height: 1.5; color: #333; display: flex; flex-direction: column; gap: 14px; }
-      .guide-body h3 { color: var(--primary); margin: 10px 0 4px 0; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
-      .guide-body ul { margin: 0; padding-left: 20px; }
-      .guide-body li { margin-bottom: 6px; }
-
-      /* Screen Swipeable Barcode Carousel View */
-      .carousel-container { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; background: #f9f9f9; border: 2px dashed #ccc; border-radius: 8px; text-align: center; }
-      .carousel-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); width: 100%; box-sizing: border-box; margin-bottom: 15px; display: flex; flex-direction: column; align-items: center; }
-      .carousel-part { font-size: 22px; font-weight: bold; font-family: monospace; margin-bottom: 4px; color: var(--primary); }
-      .carousel-loc { font-size: 14px; font-weight: bold; background: #e2e8f0; color: #1e293b; padding: 2px 8px; border-radius: 6px; margin-bottom: 8px; display: inline-block; }
-      .carousel-desc { font-size: 14px; color: #555; margin-bottom: 15px; font-weight: 500; }
-      .carousel-barcode-box { width: 100%; display: flex; justify-content: center; background: #fff; padding: 10px; }
-      .carousel-barcode-box svg { max-width: 100%; height: 90px; }
-      
-      .carousel-nav { display: flex; width: 100%; gap: 10px; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-      .btn-carousel { flex: 1; background: var(--text); color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; }
-      .btn-carousel:disabled { background: #ccc; cursor: not-allowed; }
-      .carousel-counter { font-weight: bold; font-size: 14px; color: #666; white-space: nowrap; }
-
-      .job-modal-item { padding: 10px 0; border-bottom: 1px solid #eee; display: flex; flex-direction: column; gap: 4px;}
-      .job-modal-item:last-child { border-bottom: none; }
-      .job-modal-part { font-size: 18px; font-weight: bold; font-family: monospace; display: flex; align-items: center; gap: 8px; }
-      .job-modal-desc { font-size: 13px; color: #555; display: flex; align-items: center; gap: 8px; }
-      .btn-close-modal { background: var(--text); color: white; padding: 14px; border: none; border-radius: 8px; width: 100%; margin-top: 20px; font-weight: bold; cursor: pointer; font-size: 16px;}
-
-      /* In-App Toast Notification */
-      #toast-notification {
-        display: none;
-        position: fixed;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #1e293b;
-        color: #fff;
-        padding: 12px 24px;
-        border-radius: 8px;
-        z-index: 20000;
-        font-weight: bold;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        text-align: center;
-        max-width: 90%;
-        font-size: 15px;
-      }
-
-      #print-layout { display: none; }
-    }
-
-    /* --- PRINT STYLES (A4 Landscape) --- */
-    @media print {
-      @page { size: A4 landscape; margin: 8mm; }
-      /* Only the purpose-built print container should appear. This also hides
-         prompt modals (such as “Save Job Card”) that otherwise bleed onto page 1. */
-      body > *:not(#print-layout) { display: none !important; }
-      html, body { margin: 0 !important; padding: 0 !important; width: 100%; background: #fff !important; color: #000 !important; }
-      body > #print-layout { display: grid !important; position: static !important; visibility: visible !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5mm; width: 100%; margin: 0; padding: 0; }
-      #print-layout * { visibility: visible !important; }
-      .print-sheet-title { grid-column: 1 / -1 !important; justify-self: stretch !important; align-self: stretch !important; display: block !important; box-sizing: border-box !important; width: 100% !important; margin: 0 0 2mm !important; padding: 0 0 3mm !important; border-bottom: 1.2pt solid #000; font-family: Arial, sans-serif; font-size: 26pt; line-height: 1.15; font-weight: bold; text-align: center !important; text-transform: uppercase; overflow-wrap: anywhere; }
-      .print-card { border: 1px solid #000; border-radius: 3px; padding: 5mm 3mm; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; height: 45mm; min-width: 0; box-sizing: border-box; page-break-inside: avoid; break-inside: avoid; overflow: hidden; background: #fff !important; }
-      .print-part { font-size: 16pt; font-weight: bold; margin-bottom: 2mm; font-family: monospace; line-height: 1.1; }
-      .print-loc { font-size: 9pt; font-weight: bold; margin-bottom: 1.5mm; border: 1px solid #000; padding: 1px 4px; border-radius: 2px; display: inline-block; }
-      .print-desc { font-size: 8pt; font-weight: bold; text-transform: uppercase; margin-bottom: auto; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .barcode-wrapper { margin-top: 2mm; width: 100%; min-width: 0; display: flex; justify-content: center; align-items: center; overflow: hidden; }
-      .barcode-wrapper svg { display: block; height: auto; max-height: 16mm; max-width: 100%; background: #fff; overflow: hidden; }
-    }
-
-/* Renovated visual system: original structure and functionality preserved. */
-:root{--primary:#0b5cab;--primary-dark:#074b8d;--secondary:#4f5f70;--success:#18864b;--warning:#e09a13;--danger:#c5353d;--info:#147f99;--bg:#eef3f8;--card-bg:#fff;--text:#142434}body{background:linear-gradient(180deg,#e9f2fc 0,#f5f8fb 310px);color:var(--text)}.app-container{max-width:720px;padding:22px 18px 52px}.brand{display:flex;align-items:center;gap:13px;margin:4px 0 20px}.brand-mark{width:46px;height:46px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(135deg,#0b5cab,#1193ae);color:#fff;font-weight:900;box-shadow:0 8px 20px #0b5cab44}.brand h1{font-size:25px;margin:0;text-align:left;line-height:1.05}.brand p{margin:5px 0 0;color:#607184;font-size:12px;font-weight:600}.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:20px}.quick-action{display:flex;align-items:center;gap:8px;text-align:left;background:#fff;color:#26394b;border:1px solid #dce6ef;box-shadow:0 3px 9px #1a3d5c12;padding:11px 12px;font-size:13px}.quick-primary{background:#e9f3ff;color:#07529b}.quick-success{background:#eaf8ef;color:#126b3a}.quick-warning{background:#fff7e6;color:#895900}.svg-icon{width:19px;height:19px;display:inline-flex;flex:none}.svg-icon svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.input-card,.scanned-list,.group-card{border:1px solid #dce6ef;box-shadow:0 6px 18px #173c5c12;border-radius:16px}.input-card{padding:18px;background:linear-gradient(145deg,#fff,#f9fcff)}input[type=text],input[type=number]{border:1px solid #cbd8e5;border-radius:9px}.btn{border-radius:9px}.btn-search-top,.btn-guide-top{display:none}.list-header{font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:#526477;margin-top:27px}.groups-section{border-top:0;padding-top:0}.group-card{padding:14px;background:#fff;border-left:5px solid #0b5cab}.job-card{border-left-color:#147f99}.group-actions{flex-wrap:wrap}.group-actions button{min-width:calc(50% - 4px)}.job-modal-content,.search-modal-content,.prompt-card{border-radius:18px}@media(max-width:420px){.app-container{padding:16px 12px 45px}.quick-grid{gap:7px}.quick-action{font-size:12px;padding:10px 9px}.loc-col{width:105px}.group-actions button{min-width:100%}}
-
-    .repeat-qty-control{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;font-size:13px;color:#33485c;font-weight:600}
-    .repeat-qty-control input{width:18px;height:18px}
-
-    /* Mobile-first workflow: large touch targets and minimal secondary controls */
-    .mobile-workflow-hint{background:#eaf3ff;border:1px solid #bfd8f7;border-radius:14px;padding:13px 14px;margin:12px 0 14px;display:flex;flex-direction:column;gap:5px;color:#163a63;font-size:14px;line-height:1.4}
-    .mobile-workflow-hint strong{font-size:15px}
-    .mobile-core-actions{grid-template-columns:1fr 1fr;margin-bottom:14px}
-    .mobile-core-actions .quick-action{min-height:58px;font-size:15px}
-    .mobile-tools{margin:0 0 16px;border:1px solid var(--border, #d8e0e8);border-radius:12px;background:#fff}
-    .mobile-tools summary{padding:12px 14px;font-weight:700;cursor:pointer;min-height:24px}
-    .mobile-tools .quick-grid{padding:0 10px 10px;grid-template-columns:1fr 1fr}
-    .mobile-show-barcode{font-size:18px!important;min-height:58px;width:100%;box-shadow:0 3px 0 rgba(0,0,0,.08)}
-    #partNo{font-size:18px!important;font-weight:700;letter-spacing:.3px}
-    #itemQty{font-size:18px!important;min-height:48px}
-    #add-btn{min-height:52px;font-size:17px}
-    .list-header{margin-top:22px}
-    #job-modal{padding:10px!important}
-    #job-modal .job-modal-content{width:100%;max-width:100%;border-radius:16px}
-    #tab-content-barcode{padding:12px 6px!important}
-    #carousel-barcode-svg{max-width:100%;height:auto}
-    @media(max-width:480px){.app-container{padding:12px!important}.brand h1{font-size:23px}.input-row-top{gap:8px}.mobile-core-actions{gap:8px}.mobile-core-actions .quick-action{padding:10px 7px}.mobile-workflow-hint{font-size:13px}.mobile-show-barcode{position:sticky;bottom:8px;z-index:3}}
-
-    /* Saved Job Cards / Template Groups / Scan History swipe area */
-    .saved-sections-swipe{overflow:hidden;margin-top:18px;border-radius:16px;touch-action:pan-y;}
-    .saved-sections-track{display:flex;width:300%;transition:transform .25s ease,height .2s ease;will-change:transform,height;}
-    .saved-section-slide{width:33.333333%;flex:0 0 33.333333%;box-sizing:border-box;padding:0 1px;}
-    .saved-section-slide .groups-section{margin-top:0;}
-    .saved-section-tabs{display:flex;gap:8px;margin:0 0 8px;}
-    .saved-section-tab{flex:1;border:1px solid #cbd8e5;background:#fff;color:#526477;border-radius:9px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;}
-    .saved-section-tab.active{background:#0b5cab;color:#fff;border-color:#0b5cab;}
-    .group-actions-secondary{display:grid;grid-template-columns:1fr 1fr;gap:8px;grid-column:1 / -1;margin-top:0;}
-    .group-actions-secondary button{min-height:42px;}
-    .group-actions-secondary button:nth-child(1),.group-actions-secondary button:nth-child(2){grid-column:1 / -1;}
-    .btn-more-group{min-height:42px;border:1px solid #cbd8e5;background:#f4f7fa;color:#526477;border-radius:8px;font-weight:700;cursor:pointer;}
-    .btn-more-group:active{transform:translateY(1px);}
-.setting-row{display:flex;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:1px solid #e5ebf1;cursor:pointer}.setting-row:last-of-type{border-bottom:0}.setting-row input{margin-top:3px;width:20px;height:20px}.setting-row span{display:flex;flex-direction:column;gap:3px}.setting-row small{color:#667788;font-size:12px;line-height:1.35}.simple-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:10002;align-items:center;justify-content:center;padding:18px;box-sizing:border-box}.active-list-stats{font-size:12px;color:#647588;margin:-14px 0 10px}.scan-success-flash{animation:scanFlash .45s ease}@keyframes scanFlash{0%{transform:scale(1)}50%{transform:scale(1.015)}100%{transform:scale(1)}}
-    .workflow-label{margin:18px 0 8px;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#526477}
-
-
-.job-actions-collapsed{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;}
-.job-actions-collapsed > button{min-height:42px;}
-.job-actions-collapsed .job-extra-actions{grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.job-actions-collapsed .job-extra-actions button{min-height:42px;}
-.btn-job-more{background:#f4f7fa;color:#526477;border:1px solid #cbd8e5;border-radius:8px;padding:10px 12px;font-weight:700;cursor:pointer;}
-.btn-job-more:active{transform:translateY(1px);}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workshop Bus Fault Register</title>
+<style>
+:root{--navy:#172b4d;--blue:#2457a7;--blue2:#eaf1fb;--ink:#1f2937;--muted:#64748b;--line:#dbe2ea;--bg:#f3f5f8;--white:#fff;--red:#b42318;--green:#167647;--amber:#946200}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Arial,Helvetica,sans-serif}
+header{background:var(--navy);color:white;padding:22px 28px;display:flex;align-items:center;justify-content:space-between;gap:18px}
+header h1{margin:0;font-size:23px;letter-spacing:.2px}header p{margin:4px 0 0;color:#cbd5e1;font-size:13px}
+.wrap{max-width:1400px;margin:24px auto;padding:0 22px 40px}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+button{border:0;border-radius:7px;padding:10px 15px;font-weight:700;cursor:pointer;font-size:14px}
+.primary{background:var(--blue);color:#fff}.secondary{background:#e7edf5;color:var(--navy)}.danger{background:#fee4e2;color:var(--red)}.small{padding:7px 10px;font-size:12px}
+.tabs{display:flex;gap:8px;margin-bottom:18px}.tab{background:#e4e9f0;color:#334155}.tab.active{background:var(--blue);color:white}
+.panel{background:white;border:1px solid var(--line);border-radius:11px;padding:22px;margin-bottom:18px;box-shadow:0 2px 7px #172b4d0a}
+.panel h2{font-size:18px;margin:0 0 16px;color:var(--navy)}.panel h3{font-size:15px;margin:0 0 12px;color:var(--navy)}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:15px}
+.field{display:flex;flex-direction:column;gap:6px}.field label{font-size:12px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.35px}
+input,select,textarea{width:100%;border:1px solid #cbd5e1;border-radius:6px;padding:10px 11px;font:inherit;background:#fff;color:var(--ink);min-width:0}
+input:focus,select:focus,textarea:focus{outline:2px solid #9bb9e8;border-color:var(--blue)}
+.section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{width:100%;border-collapse:collapse;min-width:650px}th{background:#f0f4f8;text-align:left;color:#334155;font-size:12px;text-transform:uppercase;letter-spacing:.3px}
+th,td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle}tr:last-child td{border-bottom:0}
+td input{padding:9px} .fault-table th:first-child{width:43%}.fault-table th:nth-child(2){width:49%}.fault-table th:last-child{width:8%}
+.brake-table{min-width:0;width:100%;table-layout:fixed}.brake-table th,.brake-table td{text-align:center;padding:7px 5px}.brake-table td:first-child,.brake-table th:first-child{text-align:left;font-weight:700;width:66px}
+.brake-table th:nth-child(2){width:48%}.brake-table th:nth-child(3){width:30%}
+.brake-entry{display:flex;justify-content:center;gap:4px;align-items:center}.brake-entry input{width:62px;min-width:0;padding:7px 4px;text-align:center}.brake-entry select{width:48px;min-width:0;padding:7px 2px;font-size:12px}
+.fault-list{display:flex;flex-direction:column;gap:9px}.fault-item{border:1px solid var(--line);border-radius:8px;padding:11px;background:#fff}.fault-main{display:flex;align-items:center;gap:10px}.fault-main input[type=checkbox]{width:22px;height:22px;flex:0 0 22px;accent-color:var(--green)}.fault-text{flex:1;min-width:0;border:0;border-bottom:1px solid #dbe2ea;border-radius:0;padding:8px 2px}.fault-text:focus{outline:0;border-bottom:2px solid var(--blue)}.fault-item.done .fault-text{text-decoration:line-through;color:#7b8794}.fault-item.done{background:#f7faf8}.fault-extra{margin:7px 0 0 32px}.fault-extra summary{font-size:12px;color:var(--blue);font-weight:700;cursor:pointer;user-select:none}.fault-extra textarea{margin-top:7px;min-height:64px;font-size:14px}
+.hint{font-size:12px;color:var(--muted);margin:9px 0 0}.required{color:var(--red)}.optional{font-size:11px;color:var(--muted);font-weight:400}
+.actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:18px}
+.status{font-size:12px;color:var(--muted);margin-right:auto;align-self:center}
+.records-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}.records-head input{max-width:330px}
+.record-card{border:1px solid var(--line);border-radius:8px;padding:14px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:15px;background:#fff}
+.record-title{font-weight:700;color:var(--navy)}.record-meta{font-size:12px;color:var(--muted);margin-top:4px}.record-actions{display:flex;gap:7px;flex-wrap:wrap}
+.empty{padding:30px;text-align:center;color:var(--muted);border:1px dashed #cbd5e1;border-radius:8px;margin-top:12px}
+.notice{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;padding:11px 13px;border-radius:7px;font-size:13px;margin-bottom:15px}
+.hidden{display:none!important}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(130px,1fr))}}
+@media(max-width:600px){header{padding:15px;align-items:flex-start;flex-direction:row}header h1{font-size:18px}header p{font-size:11px}header .secondary{padding:9px;font-size:12px}.wrap{padding:0 9px 24px;margin:10px auto}.panel{padding:12px;margin-bottom:12px;border-radius:9px}.panel h2{font-size:16px;margin-bottom:12px}.grid{grid-template-columns:1fr 1fr;gap:10px}.field label{font-size:10px}.field input,.field select{padding:9px 7px;font-size:14px}.record-card{align-items:flex-start;flex-direction:column}.actions button{flex:1}.tabs{width:100%;margin-bottom:12px}.tab{flex:1;padding:10px 6px;font-size:12px}.brake-table th,.brake-table td{padding:6px 3px;font-size:12px}.brake-table td:first-child,.brake-table th:first-child{width:48px}.brake-table th:nth-child(2){width:56%}.brake-table th:nth-child(3){width:25%}.brake-entry{gap:3px}.brake-entry input{width:48px;padding:7px 2px;font-size:13px}.brake-entry select{width:42px;padding:7px 0;font-size:11px}.brake-table input{font-size:13px}.fault-item{padding:9px}.fault-extra{margin-left:31px}.section-head{align-items:center}.section-head button{padding:8px 10px;font-size:12px}}
+@media print{body{background:#fff}.no-print,header,.tabs,#recordsView{display:none!important}.wrap{max-width:none;margin:0;padding:0}.panel{box-shadow:none;border:0;padding:8px 0;break-inside:avoid}.print-title{display:block!important}input,select,textarea{border:0;padding:2px 0;appearance:none}.table-wrap{overflow:visible}table{min-width:0}th,td{padding:6px}.actions{display:none!important}}
+ 
+.brake-groups{display:flex;flex-direction:column;gap:12px}
+.brake-axle{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.axle-heading{background:#f0f4f8;padding:8px 11px;font-size:12px;font-weight:800;letter-spacing:.4px;color:#334155;display:flex;justify-content:space-between;align-items:center}
+.axle-heading span{font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted)}
+.brake-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0}
+.brake-position{padding:9px 10px;min-width:0}
+.brake-position+.brake-position{border-left:1px solid var(--line)}
+.brake-position-label{font-weight:800;font-size:14px;color:var(--navy);margin-bottom:7px}
+.brake-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px}
+.brake-field{min-width:0}
+.brake-field label{display:block;font-size:10px;color:var(--muted);font-weight:700;margin-bottom:3px;text-transform:uppercase}
+.brake-field .brake-entry{display:flex;gap:3px;justify-content:flex-start}
+.brake-field .brake-entry input{width:100%;min-width:0;padding:7px 4px;text-align:center;font-size:13px}
+.brake-field .brake-entry select{width:43px;flex:0 0 43px;min-width:0;padding:6px 1px;font-size:11px}
+@media(max-width:600px){
+ .brake-position{padding:8px 6px}
+ .brake-fields{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:5px}
+ .brake-field label{font-size:9px;white-space:nowrap}
+ .brake-field .brake-entry input{padding:7px 2px;font-size:12px}
+ .brake-field .brake-entry select{width:38px;flex-basis:38px;font-size:10px}
+ .brake-position-label{font-size:13px}
+}
 </style>
 </head>
 <body>
-
-  <!-- TOAST NOTIFICATION CONTAINER -->
-  <div id="toast-notification">Notification message</div>
-
-  <!-- CAMERA SCANNER MODAL -->
-  <div id="scanner-modal">
-    <div id="reader"></div>
-    <button class="btn-close-scanner" onclick="stopScanner()">Cancel Scan</button>
+<header>
+  <div><h1>Workshop Bus Fault Register</h1><p>Service records, fault repairs and brake measurements</p></div>
+  <div class="no-print"><button class="secondary" id="newTop">＋ New Service Record</button></div>
+</header>
+<div class="wrap">
+  <div class="tabs no-print">
+    <button class="tab active" id="entryTab">New Service Record</button>
+    <button class="tab" id="recordsTab">Saved Records</button>
   </div>
 
-  <!-- IN-APP CUSTOM CONFIRMATION MODAL -->
-  <div id="custom-confirm-modal">
-    <div class="prompt-card">
-      <h3 class="prompt-title" id="confirm-modal-title">Confirm Action</h3>
-      <p id="confirm-modal-message" style="margin: 0; font-size: 14px; color: #444; line-height: 1.4;">Are you sure?</p>
-      <div class="prompt-buttons">
-        <button class="btn-prompt-cancel" id="confirm-btn-no">Cancel</button>
-        <button class="btn-prompt-save" id="confirm-btn-yes" style="background: var(--danger);">Confirm</button>
+  <main id="entryView">
+    <section class="panel">
+      <h2>1. Bus &amp; Service Details</h2>
+      <div class="grid">
+        <div class="field"><label for="bus">Bus Number <span class="required">*</span></label><input id="bus" placeholder="e.g. 1234" required></div>
+        <div class="field"><label for="date">Date <span class="required">*</span></label><input id="date" type="date" required></div>
+        <div class="field"><label for="kms">KMS <span class="required">*</span></label><input id="kms" type="number" min="0" step="1" placeholder="Odometer reading" required></div>
+        <div class="field"><label for="service">Service Type <span class="required">*</span></label><select id="service" required><option value="">Select service</option><option>A</option><option>B3</option><option>B6</option><option>B9</option><option>C</option></select></div>
       </div>
-    </div>
-  </div>
+    </section>
 
-  <!-- SETTINGS MODAL -->
-  <div id="settings-modal" class="simple-modal">
-    <div class="prompt-card">
-      <h3 class="prompt-title">App Settings</h3>
-      <label class="setting-row"><input type="checkbox" id="auto-add-scanned" onchange="updateAppSetting('autoAddScanned',this.checked)"><span><strong>Automatically add scanned parts</strong><small>After a successful shelf scan, add the part to the active list immediately.</small></span></label>
-      <label class="setting-row"><input type="checkbox" id="scan-sound" onchange="updateAppSetting('scanSound',this.checked)"><span><strong>Scan sound</strong><small>Play a short confirmation sound after a successful scan.</small></span></label>
-      <label class="setting-row"><input type="checkbox" id="scan-vibration" onchange="updateAppSetting('scanVibration',this.checked)"><span><strong>Scan vibration</strong><small>Vibrate briefly after a successful scan.</small></span></label>
-      <label class="setting-row"><input type="checkbox" id="keep-screen-awake" onchange="updateAppSetting('keepScreenAwake',this.checked)"><span><strong>Keep screen awake for barcodes</strong><small>Prevents the phone screen sleeping while the barcode viewer is open, when supported.</small></span></label>
-      <button class="btn-close-modal" onclick="closeSettingsModal()">Close Settings</button>
-    </div>
-  </div>
+    <section class="panel">
+      <div class="section-head"><h2 style="margin:0">2. Faults &amp; Repairs</h2><button class="secondary no-print" id="addFault">＋ Add Fault</button></div>
+      <div id="faultRows" class="fault-list"></div>
+      <p class="hint">Tick a fault when it has been repaired. Open “Repair note” to record what was done. Completed faults are crossed out.</p>
+    </section>
 
-  <!-- DATABASE SEARCH MODAL -->
-  <div id="search-modal">
-    <div class="search-modal-content">
-      <div class="job-modal-header">
-        <h2 class="job-modal-title"> Search Part Database</h2>
-      </div>
-      <div class="prompt-group" style="margin-bottom: 10px;">
-        <label for="search-input-box">Search by Part Number, Description or Shelf Location (e.g. 5D4)</label>
-        <input type="text" id="search-input-box" placeholder="Type keyword..." oninput="performDatabaseSearch(this.value)">
-      </div>
-      <div class="search-results-list" id="search-results-container">
-        <div class="empty-state">Type a keyword above to search your personal database...</div>
-      </div>
-      <button class="btn-close-modal" onclick="closeSearchModal()">Close Search</button>
-    </div>
-  </div>
-
-  <!-- IN-APP JOB CARD PROMPT MODAL -->
-  <div id="job-prompt-modal">
-    <div class="prompt-card">
-      <h3 class="prompt-title" id="prompt-modal-title">Save Job Card</h3>
-      
-      <div class="prompt-group">
-        <label for="modal-job-no">Job / Bus Number *</label>
-        <input type="text" id="modal-job-no" placeholder="e.g. 5013">
-      </div>
-
-      <div class="prompt-group">
-        <label for="modal-job-desc">Job Description (Optional)</label>
-        <input type="text" id="modal-job-desc" placeholder="e.g. COMPRESSOR">
-      </div>
-
-      <div class="prompt-buttons">
-        <button class="btn-prompt-cancel" onclick="closeJobPromptModal()">Cancel</button>
-        <button class="btn-prompt-save" onclick="submitJobPromptModal()">Save</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- EMBEDDED USER GUIDE MODAL -->
-  <div id="guide-modal">
-    <div class="job-modal-content">
-      <div class="job-modal-header">
-        <h2 class="job-modal-title"> Part Picker User Guide</h2>
-      </div>
-
-      <div class="guide-body">
-        <div><strong>Part Picker is designed for your phone at the shelves.</strong> It turns the part number from a shelf barcode into a fresh, easy-to-scan barcode on your phone. You then scan that phone screen at the booking-out computer. It does not change stock levels or automatically send anything to the booking-out system.</div>
-
-        <h3>1. At the shelf: capture the part number</h3>
-        <ol>
-          <li>Tap <strong>Scan Shelf Barcode</strong> near the top of the screen. This is the single camera-scan button.</li>
-          <li>Allow camera access if prompted, then point the phone camera at the barcode on the shelf/part.</li>
-          <li>Check the Part Number field. If the shelf barcode cannot be read, type the numbers after the prefilled <strong>PI-</strong> prefix. The app adds the prefix automatically when saving. Scanning still fills the complete barcode value, so the prefix will not be duplicated.</li>
-          <li>Optionally add a shelf location or description, and set <strong>Qty</strong> to the number of times that part needs to be booked out.</li>
-          <li>If <strong>Automatically add scanned parts</strong> is enabled, a successful scan is added to the list automatically. Otherwise tap <strong>Add to List</strong>. Repeat for each part you need to collate.</li>
-        </ol>
-
-        <h3>2. Check and save your part set</h3>
-        <ul>
-          <li>Review the <strong>Active Scan List</strong> and correct any part number, quantity or description before using the barcodes.</li>
-          <li>When the list is ready, tap <strong>Generate Barcodes</strong>. This opens the booking-out view on your phone.</li>
-          <li>Tap <strong>Save As Job Card</strong> to create a new job card for the current list, using the job/bus number when prompted.</li>
-          <li>Tap <strong>Save This Part Set</strong> to create a reusable template. Template Groups can be loaded and edited separately.</li>
-          <li>Use <strong>Find a part</strong> to search by part number, description or shelf location, or use the saved-set filter to find previously used parts and templates. Favourite frequently used sets, or use <strong>Last Used Set</strong> for the most recent one.</li>
-        </ul>
-
-        <h3>3. At the booking-out computer: scan the phone</h3>
-        <ol>
-          <li>Open the correct saved job card/template, or open the active list's generated barcodes.</li>
-          <li>In the barcode viewer, keep <strong>Show each barcode once per required quantity</strong> enabled if you need to scan each unit separately. Turn it off if one scan per part number is what your booking-out process expects.</li>
-          <li>Hold your phone screen steady and scan the displayed barcode with the computer's barcode scanner. The barcode encodes the part number, not the description or shelf location. The app can keep the screen awake while this view is open when your phone/browser supports it.</li>
-          <li>Use <strong>Prev</strong> and <strong>Next</strong> to move through the list. Confirm the booking-out system accepted each scan before moving on.</li>
-        </ol>
-
-        <h3>4. Helpful reminders</h3>
-        <ul>
-          <li>Generated barcodes are a convenient substitute for manually typing the part number; they do not automatically transfer the list to the computer.</li>
-          <li>Your saved sets and history are stored in this browser on this phone. Use <strong>Backup data</strong> periodically, especially before changing phones or clearing browser data.</li>
-          <li>Open <strong>Settings</strong> to control automatic scan-to-list, sound, vibration and the barcode screen wake-lock behaviour.</li>
-          <li>For printed labels, use <strong>Print Current List</strong> from Tools when a physical set is useful. Enter a simple heading for the sheet, such as <strong>SCANIA BRAKE PARTS</strong>. For normal jobs, scan the barcodes displayed on the phone.</li>
-        </ul>
-      </div>
-
-      <button class="btn-close-modal" onclick="closeGuideModal()">Close Guide</button>
-    </div>
-  </div>
-
-  <!-- VIEWER MODAL (List OR Swipeable Screen Barcode Carousel) -->
-  <div id="job-modal">
-    <div class="job-modal-content">
-      <div class="job-modal-header">
-        <div>
-          <h2 class="job-modal-title" id="job-modal-title">Reference</h2>
-          <span class="job-modal-date" id="job-modal-date">Date</span>
+    <section class="panel">
+      <h2>3. Brake Measurements</h2>
+      <div class="brake-groups">
+        <div class="brake-axle">
+          <div class="axle-heading">FRONT <span>Required</span></div>
+          <div class="brake-pair" id="frontPair"></div>
+        </div>
+        <div class="brake-axle">
+          <div class="axle-heading">REAR <span>Required</span></div>
+          <div class="brake-pair" id="rearPair"></div>
+        </div>
+        <div class="brake-axle trailer-axle">
+          <div class="axle-heading">TRAILER <span>Optional – if fitted / required</span></div>
+          <div class="brake-pair" id="trailerRows"></div>
         </div>
       </div>
-
-      <div class="job-modal-tabs">
-        <button class="tab-btn active" id="tab-btn-list" onclick="switchJobTab('list')"> Part List</button>
-        <button class="tab-btn" id="tab-btn-barcode" onclick="switchJobTab('barcode')"> Screen Barcodes</button>
-      </div>
-
-      <!-- Tab 1: Standard Part List View -->
-      <div class="tab-content" id="tab-content-list">
-        <div id="job-modal-list"></div>
-      </div>
-
-      <!-- Tab 2: Screen Swipeable 1D Barcode Carousel -->
-      <div class="tab-content" id="tab-content-barcode">
-        <div class="carousel-container">
-          <div class="carousel-card">
-            <div class="carousel-part" id="carousel-part-no">PART-001</div>
-            <div id="carousel-loc-container"><span class="carousel-loc" id="carousel-loc">3A2</span></div>
-            <div class="carousel-desc" id="carousel-part-desc">DESCRIPTION HERE</div>
-            <div class="carousel-barcode-box">
-              <svg id="carousel-barcode-svg"></svg>
-            </div>
-          </div>
-          
-          <div class="carousel-nav">
-            <button class="btn-carousel" id="carousel-prev" onclick="navigateCarousel(-1)"> Prev</button>
-            <span class="carousel-counter" id="carousel-counter">1 of 5</span>
-            <button class="btn-carousel" id="carousel-next" onclick="navigateCarousel(1)">Next </button>
-          </div>
-          
-          <label class="repeat-qty-control"><input type="checkbox" id="repeat-qty-toggle" checked onchange="toggleQuantityBarcodeMode(this.checked)"> Show each barcode once per required quantity</label>
-          <div style="font-size: 12px; color: #666; margin-top: 5px; text-align: center;">Scan each displayed barcode into your booking-out system. Quantities are repeated when the option above is enabled.</div>
-        </div>
-      </div>
-
-      <button class="btn-close-modal" onclick="closeJobModal()">Close Viewer</button>
-    </div>
-  </div>
-
-  <!-- MOBILE UI -->
-  <div class="app-container">
-    <div class="brand"><div class="brand-mark">PP</div><div><h1>Part Picker</h1><p>Parts collation, saved sets and barcode prep</p></div></div>
-    
-    <!-- MOBILE-FIRST CORE ACTIONS: scan a shelf label, build a list, show generated barcodes -->
-    <div class="quick-grid mobile-core-actions" style="grid-template-columns:1fr;">
-      <button class="quick-action" onclick="openSearchModal()"><span class="svg-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"></circle><path d="m16 16 5 5"></path></svg></span>Find a part</button>
-    </div>
-    <details class="mobile-tools">
-      <summary>Tools</summary>
-      <div class="quick-grid">
-        <button class="quick-action" onclick="openGuideModal()">How it works</button>
-        <button class="quick-action quick-success" onclick="exportAllData()">Backup data</button>
-        <button class="quick-action quick-warning" onclick="document.getElementById('backup-file-input').click()">Import backup</button>
-        <button class="quick-action" onclick="printCurrentList()">Print Current List</button>
-        <button class="quick-action" onclick="exportActiveListCSV()">Export active list CSV</button>
-        <button class="quick-action" onclick="openSettingsModal()">Settings</button>
-        <button class="quick-action" onclick="openLastUsedGroup()">Last Used Set</button>
-      </div>
-    </details>
-    <input id="backup-file-input" type="file" accept="application/json,.json" style="display:none" onchange="importBackupFile(event)">
-    
-    <div class="workflow-label">Scan</div>
-    <div class="input-card" id="input-card">
-      <!-- Top Row: Part Number and optional shelf location -->
-      <div class="input-row-top">
-        <div class="part-col">
-          <label for="partNo">Part Number</label>
-          <input type="text" id="partNo" value="PI-" placeholder="PI-" oninput="lookupPartData(this.value)">
-        </div>
-        <div class="loc-col">
-          <label for="loc">Shelf location (optional)</label>
-          <input type="text" id="loc" placeholder="" maxlength="10">
-        </div>
-        <button class="quick-action quick-primary inline-scan-btn" type="button" onclick="startScanner()" aria-label="Scan shelf barcode">Scan</button>
-      </div>
-      
-      <!-- Second Row: Item Description (Large Box) -->
-      <div class="input-row">
-        <label for="desc">Description (optional)</label>
-        <input type="text" id="desc" placeholder="">
-      </div>
-
-      <!-- Third Row: Qty & Add Button -->
-      <div class="input-row-split">
-        <div class="qty-container">
-          <label for="itemQty">Qty</label>
-          <input type="number" id="itemQty" value="1" min="1" max="999">
-        </div>
-        <div style="flex-grow: 1;">
-          <button class="btn" id="add-btn" onclick="addOrUpdateLabel()">Add to List</button>
-        </div>
-      </div>
-
-      <div class="button-group" style="margin-top: 10px;">
-        <button class="btn btn-cancel" id="cancel-btn" onclick="cancelEdit()">Cancel Edit</button>
-      </div>
-    </div>
-
-    <!-- Active List Section -->
-    <div class="workflow-label">Review</div>
-    <div class="list-header">
-      <span>Active Scan List</span>
-      <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 14px;" id="count-badge">0</span>
-    </div>
-    
-    <!-- Workbench Editing Banner -->
-    <div id="editing-banner" class="editing-banner" style="display: none;">
-      <div class="editing-banner-header">
-        <span class="editing-banner-title" id="editing-banner-text">Editing Job/Template...</span>
-        <button class="btn-banner-rename" onclick="openJobPromptModal('rename')">Rename</button>
-      </div>
-      <div style="display:flex; gap: 8px;">
-        <button class="btn-banner-cancel" onclick="cancelContextEdit()">Cancel Edits</button>
-        <button class="btn-banner-save" onclick="saveContextChanges()">Save Changes</button>
-      </div>
-    </div>
-
-    <div class="scanned-list">
-      <div id="list">
-        <div class="empty-state" id="empty-state">No parts scanned yet.</div>
-      </div>
-    </div>
-
-    <!-- Main Actions -->
-    <div id="action-buttons" style="display: none;">
-      <button class="btn btn-group-init mobile-show-barcode" onclick="showActiveListBarcodes()">Generate Barcodes</button>
-      <button class="btn btn-job-save" onclick="openJobPromptModal('save')">Save As Job Card</button>
-      <button class="btn btn-save-template" onclick="saveActiveListAsTemplate()">Save This Part Set</button>
-      <button class="btn btn-clear" onclick="clearAllLabels()">Clear Active List</button>
-    </div>
-
-    <div class="workflow-label saved-label">Saved</div>
-
-    <!-- Saved Job Cards / Template Groups: swipe between sections -->
-    <div class="saved-sections-swipe" id="saved-sections-swipe">
-      <div class="saved-section-tabs">
-        <button class="saved-section-tab active" id="saved-tab-jobs" onclick="showSavedSection(0)">Job Cards</button>
-        <button class="saved-section-tab" id="saved-tab-groups" onclick="showSavedSection(1)">Template Groups</button>
-        <button class="saved-section-tab" id="saved-tab-history" onclick="showSavedSection(2)">Scan History</button>
-      </div>
-      <div class="saved-sections-track" id="saved-sections-track">
-        <div class="saved-section-slide">
-    <div class="groups-section job-section" id="jobs-section" style="display: none;">
-      <div class="list-header" style="margin-top:0; display:flex; justify-content:space-between; align-items:center;">
-        <span id="jobs-title-text">My Saved Job Cards </span>
-        <span style="background: var(--info); color: white; padding: 2px 8px; border-radius: 12px; font-size: 14px;" id="jobs-count-badge">0</span>
-      </div>
-      <div class="scanned-list" id="jobs-list-container" style="display: block; background: transparent; box-shadow: none; margin-bottom: 0;">
-        <div id="jobs-list">
-          <!-- Job Cards render here -->
-        </div>
-      </div>
-    </div>
-
-    <!-- Saved Template Groups Section (Collapsible) -->
-        </div>
-        <div class="saved-section-slide">
-    <div class="groups-section" id="groups-section" style="display: none;">
-      <div class="list-header" style="margin-top:0; display:flex; justify-content:space-between; align-items:center;">
-        <span id="groups-title-text" style="flex-grow: 1;">My Template Groups </span>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 14px;" id="groups-count-badge">0</span>
-        </div>
-      </div>
-      <div class="scanned-list" id="groups-list-container" style="display: block; background: transparent; box-shadow: none; margin-bottom: 0;">
-        <input type="search" id="group-filter" class="group-filter" placeholder="Filter saved sets by name or part number…" aria-label="Filter saved templates" oninput="filterSavedGroups(this.value)" style="width:100%;box-sizing:border-box;margin:0 0 10px;padding:12px;border:1px solid #cbd8e5;border-radius:10px;font-size:16px;">
-        <div id="groups-list">
-          <!-- Groups render here -->
-        </div>
-      </div>
-    </div>
-
-        </div>
-        <div class="saved-section-slide">
-          <div class="groups-section" id="history-section" style="display: none;">
-            <div class="list-header" style="margin-top:0; display:flex; justify-content:space-between; align-items:center;">
-              <span id="history-title-text">Scan History (Last 25) </span>
-              <button class="btn-action remove" onclick="event.stopPropagation(); clearHistory();" style="font-weight:normal; border-color:transparent;">Clear All</button>
-            </div>
-            <div class="scanned-list" id="history-list" style="display: block;">
-              <!-- History renders here -->
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- PRINT UI: kept outside the mobile app container so print CSS can expose it reliably. -->
-  <div id="print-layout"></div>
-
-  <script>
-    let labels = [];
-    let savedGroups = [];
-    let savedJobs = [];
-    let scanHistory = [];
-    let editingId = null;
-    let contextEditing = null;
-    let lastUsedGroupId = null;
-    let html5QrCode = null;
-    let promptMode = 'save'; // 'save' or 'rename'
-    let scannerStarting = false;
-    let scannerStopping = false;
-    let scannerGeneration = 0;
-    let wakeLock = null;
-    let appSettings = { autoAddScanned: true, scanSound: true, scanVibration: true, keepScreenAwake: true };
-    const APP_SETTINGS_KEY = 'partPickerSettings';
-
-    // Treat all stored/imported values as untrusted input.
-    function escapeHTML(value) {
-      return String(value ?? '').replace(/[&<>\"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));
-    }
-    // Values passed through inline handlers are URI-encoded; decode them before
-    // putting them back into form fields. Fall back safely if older data is malformed.
-    function safeDecodeURIComponent(value) {
-      try { return decodeURIComponent(String(value ?? '')); }
-      catch (_) { return String(value ?? ''); }
-    }
-    function safeId(value, fallback = '') {
-      const id = String(value ?? '');
-      return /^[A-Za-z0-9_-]{1,100}$/.test(id) ? id : fallback;
-    }
-    function validQty(value, fallback = 1) {
-      const n = Number(value);
-      return Number.isInteger(n) && n >= 1 && n <= 999 ? n : fallback;
-    }
-    function persist(key, value) {
-      try { localStorage.setItem(key, JSON.stringify(value)); return true; }
-      catch (error) { console.error('Unable to save local data:', error); showNotification('Could not save data. Browser storage may be full or disabled. Export a backup and try again.'); return false; }
-    }
-    
-    // Carousel state & toggle states (with localStorage persistence)
-    let carouselItems = [];
-    let carouselSourceItems = [];
-    let carouselIndex = 0;
-    let quantityBarcodeMode = true;
-    let lastLookupPart = "";
-    let lastAutoDesc = "";
-    let lastAutoLoc = "";
-
-    const PART_PICKER_BACKUP_KEYS=['savedBarcodeLabels','savedBarcodeGroups','savedJobCards','scanHistoryList','editingContext','partPickerSettings'];
-    function safeParseStoredValue(key,fallback){try{const v=localStorage.getItem(key);return v===null?fallback:JSON.parse(v)}catch(error){console.error(error);return fallback}}
-    function loadAppSettings(){ const raw=safeParseStoredValue(APP_SETTINGS_KEY,{}); if(raw&&typeof raw==='object') appSettings={...appSettings,...raw}; }
-    function saveAppSettings(){ persist(APP_SETTINGS_KEY,appSettings); }
-    function applySettingsUI(){ ['auto-add-scanned','scan-sound','scan-vibration','keep-screen-awake'].forEach(id=>{const el=document.getElementById(id); if(el) el.checked = id==='auto-add-scanned'?appSettings.autoAddScanned:id==='scan-sound'?appSettings.scanSound:id==='scan-vibration'?appSettings.scanVibration:appSettings.keepScreenAwake; }); }
-    function updateAppSetting(key, value){ appSettings[key]=value===true; saveAppSettings(); showNotification('Setting updated.'); }
-    function playScanFeedback(){ if(appSettings.scanVibration && navigator.vibrate) navigator.vibrate([70,40,70]); if(appSettings.scanSound){ try{ const C=window.AudioContext||window.webkitAudioContext; if(C){ const c=new C(),o=c.createOscillator(),g=c.createGain(); o.frequency.value=880; g.gain.value=.045; o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime+.09); } }catch(_){} } }
-    async function requestWakeLock(){ if(!appSettings.keepScreenAwake || !('wakeLock' in navigator)) return; try{ wakeLock=await navigator.wakeLock.request('screen'); }catch(_){} }
-    async function releaseWakeLock(){ if(wakeLock){ try{ await wakeLock.release(); }catch(_){} wakeLock=null; } }
-    document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && document.getElementById('job-modal')?.style.display==='flex' && appSettings.keepScreenAwake) requestWakeLock(); });
-    function exportAllData(){try{const b={app:'Part Picker',backupVersion:1,exportedAt:new Date().toISOString(),data:{savedBarcodeLabels:safeParseStoredValue('savedBarcodeLabels',[]),savedBarcodeGroups:safeParseStoredValue('savedBarcodeGroups',[]),savedJobCards:safeParseStoredValue('savedJobCards',[]),scanHistoryList:safeParseStoredValue('scanHistoryList',[]),editingContext:safeParseStoredValue('editingContext',null),partPickerSettings:safeParseStoredValue(APP_SETTINGS_KEY,appSettings)}};const blob=new Blob([JSON.stringify(b,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`part-picker-backup-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);showNotification('Backup downloaded successfully.')}catch(e){console.error(e);showNotification('Backup failed.')}}
-    function importBackupFile(event){const input=event.target,file=input.files&&input.files[0];input.value='';if(!file)return;if(file.size>10485760)return showNotification('Backup file is too large.');const reader=new FileReader();reader.onerror=()=>showNotification('Could not read that file.');reader.onload=()=>{let d;try{const b=JSON.parse(reader.result);if(!b||!b.data||typeof b.data!=='object')throw new Error('Invalid Part Picker backup.');d=b.data;if(b.app!=='Part Picker'||!Number.isInteger(b.backupVersion)||b.backupVersion!==1)throw new Error('Unsupported backup format or version.');for(const k of ['savedBarcodeLabels','savedBarcodeGroups','savedJobCards','scanHistoryList'])if(!Array.isArray(d[k]))throw new Error(`Backup is missing valid ${k} data.`);if(d.partPickerSettings!==undefined&&(!d.partPickerSettings||typeof d.partPickerSettings!=='object'))throw new Error('Invalid app settings.')}catch(e){showNotification(e.message||'Invalid backup file.');return}const count=(d.savedBarcodeLabels||[]).length+(d.savedBarcodeGroups||[]).length+(d.savedJobCards||[]).length+(d.scanHistoryList||[]).length;showCustomConfirm(`Import this backup? ${count} saved records will replace data in this browser.`,()=>{try{for(const k of PART_PICKER_BACKUP_KEYS)if(Object.prototype.hasOwnProperty.call(d,k))localStorage.setItem(k,JSON.stringify(d[k]));showNotification('Backup imported. Reloading...');setTimeout(()=>location.reload(),700)}catch(e){showNotification('Import failed.')}})};reader.readAsText(file)}
-
-    // Toast Notification helper
-    function showNotification(msg) {
-      const toast = document.getElementById('toast-notification');
-      toast.innerText = msg;
-      toast.style.display = 'block';
-      setTimeout(() => {
-        toast.style.display = 'none';
-      }, 3500);
-    }
-
-    // Custom In-App Confirmation Modal replacement for confirm()
-    function showCustomConfirm(message, onConfirm) {
-      const modal = document.getElementById('custom-confirm-modal');
-      document.getElementById('confirm-modal-message').innerText = message;
-      modal.style.display = 'flex';
-
-      const btnYes = document.getElementById('confirm-btn-yes');
-      const btnNo = document.getElementById('confirm-btn-no');
-
-      // Clear previous listeners
-      const newBtnYes = btnYes.cloneNode(true);
-      const newBtnNo = btnNo.cloneNode(true);
-      btnYes.parentNode.replaceChild(newBtnYes, btnYes);
-      btnNo.parentNode.replaceChild(newBtnNo, btnNo);
-
-      newBtnYes.addEventListener('click', () => {
-        modal.style.display = 'none';
-        onConfirm();
-      });
-      newBtnNo.addEventListener('click', () => {
-        modal.style.display = 'none';
-      });
-    }
-
-    // Initialization
-    window.onload = () => {
-      loadAppSettings();
-      lastUsedGroupId = safeParseStoredValue('lastUsedGroupId', null);
-      const rawLabels = safeParseStoredValue('savedBarcodeLabels', []);
-      labels = (Array.isArray(rawLabels) ? rawLabels : []).filter(x => x && typeof x === 'object' && typeof x.partNo === 'string').map((label, index) => ({
-        id: safeId(label.id, `label_${Date.now()}_${index}`),
-        desc: String(label.desc || '').slice(0, 500),
-        loc: String(label.loc || '').toUpperCase().replace(/[^A-Z0-9\-]/g, '').slice(0, 100),
-        partNo: label.partNo.toUpperCase().replace(/[^A-Z0-9\-]/g, '').slice(0, 100),
-        qty: validQty(label.qty),
-        oos: label.oos === true
-      })).filter(label => label.partNo);
-      const normalizeCollections = (value, type) => Array.isArray(value) ? value.filter(x => x && typeof x === 'object' && Array.isArray(x.items) && typeof (x.name || x.jobNo) === 'string').map((record, index) => ({
-        ...record, id: safeId(record.id, `${type}_${Date.now()}_${index}`), favorite: record.favorite === true, name: String(record.name || record.jobNo || type).slice(0, 200),
-        items: record.items.filter(item => item && typeof item === 'object' && typeof item.partNo === 'string').map(item => ({
-          partNo: item.partNo.toUpperCase().replace(/[^A-Z0-9\-]/g, '').slice(0, 100),
-          desc: String(item.desc || '').slice(0, 500), loc: String(item.loc || '').toUpperCase().replace(/[^A-Z0-9\-]/g, '').slice(0, 100),
-          qty: validQty(item.qty), oos: item.oos === true
-        })).filter(item => item.partNo)
-      })) : [];
-      savedGroups = normalizeCollections(safeParseStoredValue('savedBarcodeGroups', []), 'group');
-      savedJobs = normalizeCollections(safeParseStoredValue('savedJobCards', []), 'job').map(job => ({...job, jobNo: String(job.jobNo || job.name || 'JOB').slice(0, 200), description: String(job.description || '').slice(0, 500), date: String(job.date || '').slice(0, 100)}));
-      const rawHistory = safeParseStoredValue('scanHistoryList', []);
-      scanHistory = (Array.isArray(rawHistory) ? rawHistory : []).filter(h => h && typeof h === 'object' && typeof h.partNo === 'string').slice(0, 25).map((h, i) => ({id:safeId(h.id, `hist_${Date.now()}_${i}`),partNo:h.partNo.toUpperCase().replace(/[^A-Z0-9\-]/g,'').slice(0,100),desc:String(h.desc||'').slice(0,500),loc:String(h.loc||'').toUpperCase().replace(/[^A-Z0-9\-]/g,'').slice(0,100),date:String(h.date||'').slice(0,100)}));
-      contextEditing = safeParseStoredValue('editingContext', null);
-      if (!contextEditing || !['job','group'].includes(contextEditing.type) || typeof contextEditing.id !== 'string') contextEditing = null;
-
-      saveData();
-      saveGroupsData();
-      saveJobsData();
-      saveHistoryData();
-
-      document.getElementById('partNo').value = 'PI-';
-      document.getElementById('loc').value = "";
-      document.getElementById('desc').value = "";
-      document.getElementById('itemQty').value = "1";
-      
-      renderUI();
-      
-      document.getElementById('partNo').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') { e.preventDefault(); document.getElementById('loc').focus(); }
-      });
-      document.getElementById('loc').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') { e.preventDefault(); document.getElementById('desc').focus(); }
-      });
-      document.getElementById('desc').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') { e.preventDefault(); document.getElementById('itemQty').focus(); }
-      });
-      document.getElementById('itemQty').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') { e.preventDefault(); addOrUpdateLabel(); }
-      });
-    };
-
-    let savedSectionIndex = 0;
-    function updateSavedSectionHeight(){
-      const track = document.getElementById('saved-sections-track');
-      if(!track) return;
-      const slides = track.querySelectorAll('.saved-section-slide');
-      const activeSlide = slides[savedSectionIndex];
-      if(activeSlide) track.style.height = `${activeSlide.scrollHeight}px`;
-    }
-
-    function showSavedSection(index){
-      savedSectionIndex = Math.max(0, Math.min(2, Number(index) || 0));
-      const track = document.getElementById('saved-sections-track');
-      if(track) track.style.transform = `translateX(-${savedSectionIndex * 33.333333}%)`;
-      document.getElementById('saved-tab-jobs')?.classList.toggle('active', savedSectionIndex===0);
-      document.getElementById('saved-tab-groups')?.classList.toggle('active', savedSectionIndex===1);
-      document.getElementById('saved-tab-history')?.classList.toggle('active', savedSectionIndex===2);
-      requestAnimationFrame(updateSavedSectionHeight);
-    }
-    (function setupSavedSectionSwipe(){
-      let startX = null;
-      let startY = null;
-      document.addEventListener('touchstart', e=>{
-        const area=document.getElementById('saved-sections-swipe');
-        if(area && e.target.closest('#saved-sections-swipe')){
-          startX=e.touches[0].clientX;
-          startY=e.touches[0].clientY;
-        }
-      }, {passive:true});
-      document.addEventListener('touchend', e=>{
-        if(startX===null || startY===null)return;
-        const dx=e.changedTouches[0].clientX-startX;
-        const dy=e.changedTouches[0].clientY-startY;
-        startX=null;
-        startY=null;
-        const horizontalDistance=Math.abs(dx);
-        const verticalDistance=Math.abs(dy);
-        if(horizontalDistance>=90 && horizontalDistance>verticalDistance*1.35){
-          showSavedSection(savedSectionIndex + (dx<0 ? 1 : -1));
-        }
-      }, {passive:true});
-    })();
-
-    // --- DATABASE SEARCH MODAL CONTROLS ---
-    function openSearchModal() {
-      document.getElementById('search-modal').style.display = 'flex';
-      document.getElementById('search-input-box').value = '';
-      document.getElementById('search-results-container').innerHTML = '<div class="empty-state">Type a keyword above to search your personal database...</div>';
-      document.getElementById('search-input-box').focus();
-    }
-
-    function closeSearchModal() {
-      document.getElementById('search-modal').style.display = 'none';
-    }
-
-    function performDatabaseSearch(queryText) {
-      const query = queryText.trim().toUpperCase();
-      const container = document.getElementById('search-results-container');
-      container.innerHTML = '';
-
-      if (!query) {
-        container.innerHTML = '<div class="empty-state">Type a keyword above to search your personal database...</div>';
-        return;
-      }
-
-      // Aggregate all unique parts from scan history, jobs, and templates
-      const matchedPartsMap = new Map();
-
-      // Search History
-      scanHistory.forEach(h => {
-        if (String(h.partNo || '').toUpperCase().includes(query) || (h.desc && h.desc.toUpperCase().includes(query)) || (h.loc && h.loc.toUpperCase().includes(query))) {
-          matchedPartsMap.set(h.partNo, { partNo: h.partNo, desc: h.desc || '', loc: h.loc || '' });
-        }
-      });
-
-      // Search Jobs
-      savedJobs.forEach(job => {
-        job.items.forEach(item => {
-          if (String(item.partNo || '').toUpperCase().includes(query) || (item.desc && item.desc.toUpperCase().includes(query)) || (item.loc && item.loc.toUpperCase().includes(query))) {
-            matchedPartsMap.set(item.partNo, { partNo: item.partNo, desc: item.desc || '', loc: item.loc || '' });
-          }
-        });
-      });
-
-      // Search Templates
-      savedGroups.forEach(group => {
-        group.items.forEach(item => {
-          if (String(item.partNo || '').toUpperCase().includes(query) || (item.desc && item.desc.toUpperCase().includes(query)) || (item.loc && item.loc.toUpperCase().includes(query))) {
-            matchedPartsMap.set(item.partNo, { partNo: item.partNo, desc: item.desc || '', loc: item.loc || '' });
-          }
-        });
-      });
-
-      const results = Array.from(matchedPartsMap.values());
-
-      if (results.length === 0) {
-        container.innerHTML = `<div class="empty-state">No matching parts found for "${escapeHTML(queryText)}".</div>`;
-        return;
-      }
-
-      results.forEach(res => {
-        const safeDesc = encodeURIComponent(res.desc || '');
-        const safeLoc = encodeURIComponent(res.loc || '');
-        container.innerHTML += `
-          <div class="scanned-item">
-            <div class="item-part-line">${escapeHTML(res.partNo)}</div>
-            <div class="item-desc-line">${res.loc ? '<span class="loc-badge"> ' + escapeHTML(res.loc) + '</span>' : ''} ${escapeHTML(res.desc || 'No description')}</div>
-            <div class="item-footer-row">
-              <span style="font-size: 11px; color: #888;">Database Match</span>
-              <div class="item-actions">
-                <button class="btn-action edit" onclick="addFromSearch('${escapeHTML(res.partNo)}', '${safeDesc}', '${safeLoc}')">Add to List</button>
-              </div>
-            </div>
-          </div>
-        `;
-      });
-    }
-
-    function addFromSearch(partNo, desc, loc) {
-      document.getElementById('partNo').value = partNo;
-      document.getElementById('loc').value = safeDecodeURIComponent(loc || '');
-      document.getElementById('desc').value = safeDecodeURIComponent(desc || '');
-      document.getElementById('itemQty').value = "1";
-      addOrUpdateLabel();
-      closeSearchModal();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      showNotification(`Added ${partNo} from database search!`);
-    }
-
-    // --- USER GUIDE MODAL CONTROLS ---
-    function openGuideModal() {
-      document.getElementById('guide-modal').style.display = 'flex';
-    }
-
-    function closeGuideModal() {
-      document.getElementById('guide-modal').style.display = 'none';
-    }
-
-    // Manual entry defaults to PI-. Scanned/database values remain full part numbers.
-    function normalizePartNumber(value, addDefaultPrefix = false) {
-      let partNo = String(value || '').toUpperCase().replace(/[^A-Z0-9\-]/g, '').trim();
-      // Collapse accidental repeated PI- prefixes without changing other barcode formats.
-      while (partNo.startsWith('PI-PI-')) partNo = partNo.slice(3);
-      if (addDefaultPrefix && partNo && !partNo.startsWith('PI-')) partNo = `PI-${partNo}`;
-      return partNo;
-    }
-
-    // --- AUTO-LOOKUP DESCRIPTION & LOCATION LOGIC ---
-    function lookupPartData(val) {
-      const cleanPart = normalizePartNumber(val, true);
-      const descInput = document.getElementById('desc');
-      const locInput = document.getElementById('loc');
-      if (cleanPart !== lastLookupPart) {
-        if (lastAutoDesc && descInput.value === lastAutoDesc) descInput.value = '';
-        if (lastAutoLoc && locInput.value === lastAutoLoc) locInput.value = '';
-        lastAutoDesc = ''; lastAutoLoc = ''; lastLookupPart = cleanPart;
-      }
-      if (!cleanPart) return;
-      let foundDesc = '', foundLoc = '', foundExisting = false;
-      const collections = [scanHistory, ...savedJobs.map(x => x.items || []), ...savedGroups.map(x => x.items || [])];
-      for (const collection of collections) {
-        const match = collection.find(item => item.partNo === cleanPart);
-        if (match) { foundExisting = true; if (!foundDesc && match.desc) foundDesc = match.desc; if (!foundLoc && match.loc) foundLoc = match.loc; }
-        if (foundDesc && foundLoc) break;
-      }
-      if (foundDesc && !descInput.value.trim()) { descInput.value = foundDesc; lastAutoDesc = foundDesc; }
-      if (foundLoc && !locInput.value.trim()) { locInput.value = foundLoc; lastAutoLoc = foundLoc; }
-      return foundExisting;
-    }
-
-    // --- CAMERA SCANNER (With BarcodeDetector for Orange Labels) ---
-    async function startScanner() {
-      const modal = document.getElementById('scanner-modal');
-      if (scannerStarting || (html5QrCode && !scannerStopping)) return;
-      scannerStarting = true;
-      const generation = ++scannerGeneration;
-      modal.style.display = 'flex';
-      try {
-        if (typeof Html5Qrcode === 'undefined') throw new Error('Scanner library did not load.');
-        html5QrCode = new Html5Qrcode('reader');
-        const config = { fps: 15, qrbox: { width: 280, height: 140 }, experimentalFeatures: { useBarCodeDetectorIfSupported: true }, formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.CODE_39, Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.UPC_A] };
-        await html5QrCode.start({ facingMode: 'environment' }, config, async decodedText => {
-          if (generation !== scannerGeneration) return;
-          const cleanText = normalizePartNumber(decodedText).slice(0, 100);
-          await stopScanner();
-          if (!cleanText) { showNotification('Scanned barcode did not contain a valid part number.'); return; }
-          document.getElementById('partNo').value = cleanText;
-          document.getElementById('loc').value = '';
-          document.getElementById('desc').value = '';
-          lastAutoDesc = '';
-          lastAutoLoc = '';
-          const knownPart = lookupPartData(cleanText);
-          playScanFeedback();
-          document.getElementById('input-card').classList.add('scan-success-flash');
-          setTimeout(()=>document.getElementById('input-card').classList.remove('scan-success-flash'),500);
-          const hasKnownDetails = Boolean(document.getElementById('desc').value.trim() || document.getElementById('loc').value.trim());
-          if(appSettings.autoAddScanned && (knownPart || hasKnownDetails)){ 
-            setTimeout(()=>{ addOrUpdateLabel(true); if(navigator.vibrate && appSettings.scanVibration) navigator.vibrate(50); },120);
-          } else {
-            document.getElementById('add-btn').scrollIntoView({behavior:'smooth', block:'center'});
-            document.getElementById('add-btn').focus({preventScroll:true});
-            if(appSettings.autoAddScanned && !knownPart && !hasKnownDetails) showNotification(`${cleanText} is new — add the details before saving it.`);
-          }
-        }, () => {});
-      } catch (err) {
-        console.error('Camera error:', err);
-        modal.style.display = 'none';
-        if (html5QrCode) { try { await html5QrCode.clear(); } catch (_) {} html5QrCode = null; }
-        showNotification('Unable to access camera. Check camera permissions and use HTTPS or localhost.');
-      } finally { scannerStarting = false; }
-    }
-
-    async function stopScanner() {
-      scannerGeneration++;
-      const modal = document.getElementById('scanner-modal');
-      modal.style.display = 'none';
-      if (!html5QrCode || scannerStopping) return;
-      scannerStopping = true;
-      const scanner = html5QrCode;
-      try { if (scanner.isScanning) await scanner.stop(); } catch (err) { console.warn('Scanner stop:', err); }
-      try { await scanner.clear(); } catch (err) { console.warn('Scanner clear:', err); }
-      if (html5QrCode === scanner) html5QrCode = null;
-      scannerStopping = false;
-    }
-
-    // --- ADD or UPDATE Label (Newest first) ---
-    function addOrUpdateLabel(fromScanner = false) {
-      const partNoInput = document.getElementById('partNo');
-      const locInput = document.getElementById('loc');
-      const descInput = document.getElementById('desc');
-      const qtyInput = document.getElementById('itemQty');
-      
-      const partNo = normalizePartNumber(partNoInput.value, true);
-      const loc = locInput.value.trim().toUpperCase().replace(/[^A-Z0-9\-]/g, '');
-      const desc = descInput.value.trim().toUpperCase();
-      const rawQty = qtyInput.value.trim();
-      const qty = Number(rawQty);
-
-      if(!partNo) { showNotification("Please enter a valid part number."); partNoInput.focus(); return; }
-      if (rawQty === '' || !Number.isInteger(qty) || qty < 1 || qty > 999) { showNotification('Quantity must be a whole number from 1 to 999.'); qtyInput.focus(); return; }
-
-      if (editingId) {
-        const index = labels.findIndex(l => l.id === editingId);
-        if(index > -1) { 
-          labels[index].partNo = partNo; 
-          labels[index].loc = loc;
-          labels[index].desc = desc; 
-          labels[index].qty = qty; 
-          // Move edited item to top
-          const item = labels.splice(index, 1)[0];
-          labels.unshift(item);
-        }
-        cancelEdit(); 
-      } else {
-        const existingIndex = labels.findIndex(l => l.partNo === partNo);
-        if (existingIndex > -1) {
-          labels[existingIndex].qty = Math.min(999, labels[existingIndex].qty + qty);
-          if (desc) labels[existingIndex].desc = desc;
-          if (loc) labels[existingIndex].loc = loc;
-          // Move existing item to the top of the active list
-          const item = labels.splice(existingIndex, 1)[0];
-          labels.unshift(item);
-        } else {
-          labels.unshift({ id: Date.now().toString(), partNo: partNo, loc: loc, desc: desc, qty: qty, oos: false });
-        }
-        addToHistory(partNo, desc, loc);
-        if(fromScanner) showNotification(existingIndex > -1 ? `Already in list — quantity increased for ${partNo}.` : `Added ${partNo} to the list.`);
-      }
-
-      saveData();
-      partNoInput.value = 'PI-'; 
-      locInput.value = "";
-      descInput.value = ""; 
-      qtyInput.value = "1";
-      partNoInput.focus();
-      renderUI();
-    }
-
-    function editLabel(id) {
-      const label = labels.find(l => l.id === id);
-      if(!label) return;
-      editingId = id;
-      document.getElementById('partNo').value = label.partNo;
-      document.getElementById('loc').value = label.loc || '';
-      document.getElementById('desc').value = label.desc;
-      document.getElementById('itemQty').value = label.qty || 1;
-      
-      document.getElementById('input-card').classList.add('editing');
-      const addBtn = document.getElementById('add-btn');
-      addBtn.innerText = "Update Label"; addBtn.classList.add('btn-update');
-      document.getElementById('cancel-btn').style.display = 'block';
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    function cancelEdit() {
-      editingId = null;
-      document.getElementById('partNo').value = 'PI-'; 
-      document.getElementById('loc').value = "";
-      document.getElementById('desc').value = ""; 
-      document.getElementById('itemQty').value = "1";
-      document.getElementById('input-card').classList.remove('editing');
-      const addBtn = document.getElementById('add-btn');
-      addBtn.innerText = "Add to List"; addBtn.classList.remove('btn-update');
-      document.getElementById('cancel-btn').style.display = 'none';
-    }
-
-    function adjustQty(id, amount) {
-      const label = labels.find(l => l.id === id);
-      if (label) {
-        label.qty = Math.max(1, (parseInt(label.qty) || 1) + amount);
-        saveData();
-        renderUI();
-      }
-    }
-
-    function removeLabel(id) { labels = labels.filter(label => label.id !== id); saveData(); renderUI(); }
-    
-    function toggleOOS(id) {
-      const label = labels.find(l => l.id === id);
-      if(label) {
-        label.oos = !label.oos;
-        saveData();
-        renderUI();
-      }
-    }
-
-    function clearAllLabels() {
-      showCustomConfirm("Are you sure you want to clear the active list?", () => {
-        labels = [];
-        saveData();
-        renderUI();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        showNotification("Active list cleared.");
-      });
-    }
-
-    function addToHistory(partNo, desc, loc) {
-      scanHistory = scanHistory.filter(h => h.partNo !== partNo);
-      
-      scanHistory.unshift({
-        id: 'hist_' + Date.now().toString(),
-        partNo: partNo,
-        desc: desc,
-        loc: loc,
-        date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ' + new Date().toLocaleDateString()
-      });
-      
-      if (scanHistory.length > 25) { scanHistory = scanHistory.slice(0, 25); }
-      saveHistoryData();
-    }
-
-    function addFromHistory(partNo, desc, loc) {
-      document.getElementById('partNo').value = partNo;
-      document.getElementById('loc').value = safeDecodeURIComponent(loc || '');
-      document.getElementById('desc').value = safeDecodeURIComponent(desc || '');
-      document.getElementById('itemQty').value = "1";
-      addOrUpdateLabel();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    function clearHistory() {
-      showCustomConfirm("Are you sure you want to clear your entire scan history?", () => {
-        scanHistory = [];
-        saveHistoryData();
-        renderUI();
-        showNotification("Scan history cleared.");
-      });
-    }
-
-    // --- WORKBENCH CONTEXT EDITING & TEMPLATE LOADING ---
-    function loadContextToWorkbench(type, id) {
-      const proceedAction = () => {
-        let sourceItem = null;
-        if (type === 'job') sourceItem = savedJobs.find(j => j.id === id);
-        if (type === 'group') sourceItem = savedGroups.find(g => g.id === id);
-
-        if (!sourceItem) return;
-
-        contextEditing = { 
-          type: type, 
-          id: id, 
-          name: sourceItem.jobNo || sourceItem.name, 
-          description: sourceItem.description || '' 
-        };
-        persist('editingContext', contextEditing);
-
-        labels = sourceItem.items.map(item => ({
-          id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-          partNo: item.partNo,
-          loc: item.loc || '',
-          desc: item.desc,
-          qty: parseInt(item.qty) || 1,
-          oos: item.oos || false
-        }));
-
-        saveData();
-        renderUI();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        showNotification(`Loaded "${contextEditing.name}" into active list.`);
-      };
-
-      if (labels.length > 0) {
-        showCustomConfirm("Warning: Loading this will clear your current active list. Do you want to proceed?", proceedAction);
-      } else {
-        proceedAction();
-      }
-    }
-
-    // PURELY for Templates: Load template directly into active list to save to a job card
-    function loadTemplateToList(groupId) {
-      const template = savedGroups.find(g => g.id === groupId);
-      if (!template) return;
-      lastUsedGroupId = groupId; persist('lastUsedGroupId', lastUsedGroupId);
-
-      const proceedAction = () => {
-        // Clear current active list and load template items fresh
-        labels = template.items.map(item => ({
-          id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-          partNo: item.partNo,
-          loc: item.loc || '',
-          desc: item.desc,
-          qty: parseInt(item.qty) || 1,
-          oos: false
-        }));
-
-        // Reset context editing so it behaves as a fresh active list ready to save to a new job card
-        contextEditing = null;
-        try { localStorage.removeItem('editingContext'); } catch (error) { console.error(error); }
-
-        saveData();
-        renderUI();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        showNotification(`Template "${template.name}" loaded into active list! You can now save it as a Job Card.`);
-      };
-
-      if (labels.length > 0) {
-        showCustomConfirm(`Load template "${template.name}" into your active list? This will replace your current active parts.`, proceedAction);
-      } else {
-        proceedAction();
-      }
-    }
-
-    function openJobPromptModal(mode) {
-      if (mode === 'save' && labels.length === 0) {
-        showNotification("Your active list is empty. Scan some parts first!");
-        return;
-      }
-      
-      promptMode = mode;
-      const modal = document.getElementById('job-prompt-modal');
-      const titleEl = document.getElementById('prompt-modal-title');
-      const jobNoInput = document.getElementById('modal-job-no');
-      const jobDescInput = document.getElementById('modal-job-desc');
-
-      if (mode === 'rename' && contextEditing) {
-        titleEl.innerText = "Edit Job Details";
-        jobNoInput.value = contextEditing.name || "";
-        jobDescInput.value = contextEditing.description || "";
-      } else {
-        titleEl.innerText = "Save Job Card";
-        jobNoInput.value = "";
-        jobDescInput.value = "";
-      }
-
-      modal.style.display = 'flex';
-      jobNoInput.focus();
-    }
-
-    function closeJobPromptModal() {
-      document.getElementById('job-prompt-modal').style.display = 'none';
-    }
-
-    function submitJobPromptModal() {
-      const jobNoInput = document.getElementById('modal-job-no');
-      const jobDescInput = document.getElementById('modal-job-desc');
-      
-      const jobNo = jobNoInput.value.trim().toUpperCase();
-      const jobDesc = jobDescInput.value.trim().toUpperCase();
-
-      if (!jobNo) {
-        showNotification("Please enter a Job / Bus Number.");
-        jobNoInput.focus();
-        return;
-      }
-
-      closeJobPromptModal();
-
-      if (promptMode === 'rename' && contextEditing) {
-        contextEditing.name = jobNo;
-        contextEditing.description = jobDesc;
-        persist('editingContext', contextEditing);
-        renderUI();
-        showNotification(`Job details updated successfully!`);
-      } else {
-        const newJob = {
-          id: "job_" + Date.now().toString(),
-          jobNo: jobNo,
-          description: jobDesc,
-          date: new Date().toLocaleDateString(),
-          items: labels.map(l => ({ partNo: l.partNo, loc: l.loc || '', desc: l.desc, qty: l.qty || 1, oos: l.oos }))
-        };
-
-        savedJobs.unshift(newJob);
-        saveJobsData();
-        showNotification(`Job "${newJob.jobNo}" saved successfully!`);
-        
-        showCustomConfirm(`Job "${newJob.jobNo}" saved! Clear the active list to start your next job?`, () => {
-          labels = [];
-          contextEditing = null;
-          try { localStorage.removeItem('editingContext'); } catch (error) { console.error(error); }
-          saveData();
-          renderUI();
-        });
-        renderUI();
-      }
-    }
-
-    function saveContextChanges() {
-      if (!contextEditing) return;
-      if (labels.length === 0) {
-        showNotification("The list is empty. If you want to delete this entirely, please use the Delete button.");
-        return;
-      }
-
-      const updatedItems = labels.map(l => ({ partNo: l.partNo, loc: l.loc || '', desc: l.desc, qty: l.qty || 1, oos: l.oos }));
-
-      if (contextEditing.type === 'job') {
-        const idx = savedJobs.findIndex(j => j.id === contextEditing.id);
-        if(idx > -1) { 
-          savedJobs[idx].items = updatedItems; 
-          savedJobs[idx].jobNo = contextEditing.name; 
-          savedJobs[idx].description = contextEditing.description; 
-        }
-        saveJobsData();
-      } else if (contextEditing.type === 'group') {
-        const idx = savedGroups.findIndex(g => g.id === contextEditing.id);
-        if(idx > -1) { 
-          savedGroups[idx].items = updatedItems; 
-          savedGroups[idx].name = contextEditing.name; 
-        }
-        saveGroupsData();
-      }
-
-      showNotification(`${contextEditing.type === 'job' ? 'Job Card' : 'Template'} "${contextEditing.name}" updated successfully!`);
-      
-      contextEditing = null;
-      try { localStorage.removeItem('editingContext'); } catch (error) { console.error(error); }
-      labels = [];
-      saveData();
-      renderUI();
-    }
-
-    function cancelContextEdit() {
-      showCustomConfirm("Are you sure you want to cancel? Any changes made to this list will NOT be saved.", () => {
-        contextEditing = null;
-        try { localStorage.removeItem('editingContext'); } catch (error) { console.error(error); }
-        labels = [];
-        saveData();
-        renderUI();
-        showNotification("Edits cancelled.");
-      });
-    }
-
-    // --- VIEWERS & CAROUSELS ---
-    function viewJob(id) {
-      const job = savedJobs.find(j => j.id === id);
-      if(!job) return;
-      const jobNoStr = job.jobNo || job.name || 'JOB';
-      const title = job.description ? `${jobNoStr} - ${job.description}` : jobNoStr;
-      openModal(title, job.date, job.items, 'list');
-    }
-
-    function showActiveListBarcodes() {
-      if(labels.length === 0) { showNotification("Your active list is empty. Scan some parts first!"); return; }
-      openModal("ACTIVE LIST", new Date().toLocaleDateString(), labels, 'barcode');
-    }
-
-    function viewGroupBarcodes(groupId) {
-      const group = savedGroups.find(g => g.id === groupId);
-      if(!group) return;
-      openModal(group.name, "TEMPLATE GROUP", group.items, 'barcode');
-    }
-
-    function openModal(title, dateStr, items, defaultTab = 'list') {
-      document.getElementById('job-modal-title').innerText = title;
-      document.getElementById('job-modal-date').innerText = dateStr;
-      
-      carouselSourceItems = Array.isArray(items) ? items.map(item => ({...item})) : [];
-      quantityBarcodeMode = true;
-      const repeatToggle = document.getElementById('repeat-qty-toggle');
-      if (repeatToggle) repeatToggle.checked = true;
-      rebuildQuantityCarousel();
-      
-      const listContainer = document.getElementById('job-modal-list');
-      listContainer.innerHTML = '';
-      
-      items.forEach(item => {
-        const oosBadge = item.oos ? '<span class="oos-badge">On Order</span>' : '';
-        const locBadge = item.loc ? `<span class="loc-badge"> ${escapeHTML(item.loc)}</span>` : '';
-        const qtyDisplay = (item.qty && item.qty > 1) ? ` <span style="background:#e2e8f0; padding:1px 6px; border-radius:8px; font-size:12px;">x${item.qty}</span>` : '';
-        listContainer.innerHTML += `
-          <div class="job-modal-item">
-            <span class="job-modal-part">${escapeHTML(item.partNo)} ${qtyDisplay}</span>
-            <span class="job-modal-desc">${oosBadge}${locBadge} ${escapeHTML(item.desc || 'No description')}</span>
-          </div>
-        `;
-      });
-
-      switchJobTab(defaultTab);
-      document.getElementById('job-modal').style.display = 'flex';
-      if(defaultTab === 'barcode') requestWakeLock();
-    }
-
-    function switchJobTab(tabName) {
-      const btnList = document.getElementById('tab-btn-list');
-      const btnBarcode = document.getElementById('tab-btn-barcode');
-      const contentList = document.getElementById('tab-content-list');
-      const contentBarcode = document.getElementById('tab-content-barcode');
-
-      if (tabName === 'list') {
-        btnList.classList.add('active');
-        btnBarcode.classList.remove('active');
-        contentList.classList.add('active');
-        contentBarcode.classList.remove('active');
-      } else {
-        btnList.classList.remove('active');
-        btnBarcode.classList.add('active');
-        contentList.classList.remove('active');
-        contentBarcode.classList.add('active');
-
-        renderCarouselItem();
-      }
-    }
-
-    function navigateCarousel(direction) {
-      carouselIndex += direction;
-      if (carouselIndex < 0) carouselIndex = 0;
-      if (carouselIndex >= carouselItems.length) carouselIndex = carouselItems.length - 1;
-      renderCarouselItem();
-    }
-
-    function renderCarouselItem() {
-      if (!carouselItems || carouselItems.length === 0) return;
-
-      const currentItem = carouselItems[carouselIndex];
-      document.getElementById('carousel-part-no').innerText = currentItem.partNo;
-      
-      const locContainer = document.getElementById('carousel-loc-container');
-      if (currentItem.loc) {
-        locContainer.innerHTML = `<span class="carousel-loc" id="carousel-loc"> LOC: ${escapeHTML(currentItem.loc)}</span>`;
-        locContainer.style.display = 'block';
-      } else {
-        locContainer.style.display = 'none';
-      }
-
-      document.getElementById('carousel-part-desc').innerText = (currentItem.oos ? '[On Order] ' : '') + (currentItem.desc || 'NO DESCRIPTION') + (quantityBarcodeMode && currentItem._scanQty > 1 ? ` · copy ${currentItem._scanOrdinal} of ${currentItem._scanQty}` : '');
-      document.getElementById('carousel-counter').innerText = `${carouselIndex + 1} of ${carouselItems.length} scans`;
-
-      document.getElementById('carousel-prev').disabled = (carouselIndex === 0);
-      document.getElementById('carousel-next').disabled = (carouselIndex === carouselItems.length - 1);
-
-      try {
-        JsBarcode("#carousel-barcode-svg", currentItem.partNo, {
-          format: "CODE128",
-          lineColor: "#000",
-          width: 2.5,
-          height: 80,
-          displayValue: true,
-          fontSize: 16,
-          fontOptions: "bold",
-          margin: 5
-        });
-      } catch(e) {
-        console.error("Barcode generation error:", e);
-      }
-    }
-
-
-    function closeJobModal() { 
-      document.getElementById('job-modal').style.display = 'none';
-      releaseWakeLock(); 
-      carouselItems = [];
-      carouselSourceItems = [];
-      carouselIndex = 0;
-    }
-
-    function rebuildQuantityCarousel() {
-      carouselItems = [];
-      (carouselSourceItems || []).forEach(item => {
-        const qty = validQty(item.qty);
-        const repetitions = quantityBarcodeMode ? qty : 1;
-        for (let i = 1; i <= repetitions; i++) carouselItems.push({...item, _scanOrdinal: i, _scanQty: qty});
-      });
-      carouselIndex = Math.min(carouselIndex, Math.max(0, carouselItems.length - 1));
-      renderCarouselItem();
-    }
-
-    function toggleQuantityBarcodeMode(enabled) {
-      quantityBarcodeMode = enabled === true;
-      rebuildQuantityCarousel();
-    }
-
-    function deleteJob(id) {
-      showCustomConfirm("Are you sure you want to delete this completed Job Card?", () => {
-        savedJobs = savedJobs.filter(j => j.id !== id);
-        saveJobsData();
-        renderUI();
-        showNotification("Job card deleted.");
-      });
-    }
-
-    function saveActiveListAsTemplate() {
-      if(labels.length === 0) { showNotification("Your active list is empty. Scan some parts first!"); return; }
-      
-      const groupName = prompt("Enter a name for this template (e.g. 'Standard Service Kit'):", "");
-      if(groupName === null) return;
-      if(groupName.trim() === "") return;
-
-      const newGroup = {
-        id: "group_" + Date.now().toString(),
-        name: groupName.trim().toUpperCase(),
-        items: labels.map(l => ({ partNo: l.partNo, loc: l.loc || '', desc: l.desc, qty: l.qty || 1, oos: false }))
-      };
-
-      savedGroups.unshift(newGroup);
-      saveGroupsData();
-      renderUI();
-      showNotification(`Template "${newGroup.name}" saved successfully!`);
-    }
-
-    function deleteGroup(groupId) {
-      showCustomConfirm("Delete this saved template permanently?", () => {
-        savedGroups = savedGroups.filter(g => g.id !== groupId);
-        saveGroupsData();
-        renderUI();
-        showNotification("Template deleted.");
-      });
-    }
-
-    async function printCurrentList() {
-      if (!Array.isArray(labels) || labels.length === 0) {
-        showNotification("The active list is empty.");
-        return;
-      }
-
-      // Prefer the actual saved Job Card or Template Group name as the print heading.
-      // A template loaded into the active list keeps its ID in lastUsedGroupId.
-      let suggestedHeading = '';
-      if (contextEditing && contextEditing.type === 'job') {
-        const job = savedJobs.find(item => item.id === contextEditing.id);
-        const jobNo = contextEditing.name || (job && (job.jobNo || job.name)) || '';
-        const jobDescription = contextEditing.description || (job && job.description) || '';
-        suggestedHeading = [jobNo, jobDescription].filter(Boolean).join(' - ');
-      } else if (contextEditing && contextEditing.type === 'group') {
-        const group = savedGroups.find(item => item.id === contextEditing.id);
-        suggestedHeading = contextEditing.name || (group && group.name) || '';
-      } else if (lastUsedGroupId) {
-        const lastGroup = savedGroups.find(item => item.id === lastUsedGroupId);
-        if (lastGroup) suggestedHeading = lastGroup.name || '';
-      }
-
-      let sheetTitle = suggestedHeading.trim();
-      // Only ask for a heading when this active list is not associated with a saved job/template.
-      if (!sheetTitle) {
-        const enteredHeading = window.prompt('Heading for the printed sheet (e.g. SCANIA BRAKE PARTS):', '');
-        if (enteredHeading === null) return;
-        sheetTitle = enteredHeading.trim();
-      }
-      if (!sheetTitle) {
-        showNotification('Please enter a heading for the printed sheet.');
-        return;
-      }
-
-      const printContainer = document.getElementById('print-layout');
-      printContainer.className = '';
-      printContainer.replaceChildren();
-
-      const title = document.createElement('h1');
-      title.className = 'print-sheet-title';
-      title.style.cssText = 'grid-column:1 / -1; display:block; width:100%; box-sizing:border-box; text-align:center;';
-      title.textContent = sheetTitle;
-      printContainer.appendChild(title);
-
-      for (const item of labels) {
-        const count = validQty(item.qty);
-        for (let i = 0; i < count; i++) {
-          const printCard = document.createElement('div');
-          printCard.className = 'print-card';
-          const part = document.createElement('div'); part.className = 'print-part'; part.textContent = item.partNo; printCard.appendChild(part);
-          if (item.loc) { const loc = document.createElement('div'); loc.className = 'print-loc'; loc.textContent = `LOC: ${item.loc}`; printCard.appendChild(loc); }
-          const desc = document.createElement('div'); desc.className = 'print-desc'; desc.textContent = `${item.desc || ''} ${count > 1 ? `(1 of ${count})` : ''}`.trim(); printCard.appendChild(desc);
-          const wrapper = document.createElement('div'); wrapper.className = 'barcode-wrapper';
-          const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); wrapper.appendChild(svg); printCard.appendChild(wrapper);
-          printContainer.appendChild(printCard);
-          try { JsBarcode(svg, item.partNo, { format: 'CODE128', lineColor: '#000', width: 2.5, height: 50, displayValue: false, margin: 0 }); }
-          catch (error) { console.error('Could not render print barcode:', error); }
-        }
-      }
-
-      printContainer.offsetHeight;
-      setTimeout(() => {
-        try { window.print(); } catch (error) { console.error('Print blocked:', error); showNotification('Unable to open print dialog.'); }
-      }, 350);
-    }
-
-    function openLastUsedGroup(){ const group=savedGroups.find(g=>g.id===lastUsedGroupId); if(!group){ showNotification('No recently used set yet.'); return; } loadTemplateToList(group.id); }
-    function openSettingsModal(){ const m=document.getElementById('settings-modal'); if(m){applySettingsUI();m.style.display='flex';} }
-    function closeSettingsModal(){ const m=document.getElementById('settings-modal'); if(m)m.style.display='none'; }
-    function saveData() { return persist('savedBarcodeLabels', labels); }
-    function saveGroupsData() { return persist('savedBarcodeGroups', savedGroups); }
-    function saveJobsData() { return persist('savedJobCards', savedJobs); }
-    function saveHistoryData() { return persist('scanHistoryList', scanHistory); }
-
-    function renderUI() {
-      const listContainer = document.getElementById('list');
-      const actionButtons = document.getElementById('action-buttons');
-      const banner = document.getElementById('editing-banner');
-      
-      document.getElementById('count-badge').innerText = labels.reduce((sum, item) => sum + (parseInt(item.qty) || 1), 0);
-      const totalQty=labels.reduce((sum,item)=>sum+validQty(item.qty),0); const uniqueCount=labels.length; let stats=document.getElementById('active-list-stats'); if(!stats){stats=document.createElement('div');stats.id='active-list-stats';stats.className='active-list-stats';document.querySelector('.list-header').after(stats);} stats.textContent=labels.length?`${totalQty} total parts · ${uniqueCount} unique part${uniqueCount===1?'':'s'}`:'';
-
-      if (contextEditing) {
-        banner.style.display = 'flex';
-        const isJob = (contextEditing.type === 'job');
-        const bannerTitleStr = (isJob && contextEditing.description) ? `${contextEditing.name} - ${contextEditing.description}` : contextEditing.name;
-        document.getElementById('editing-banner-text').innerText = `WORKBENCH: Editing ${isJob ? 'Job' : 'Template'} "${escapeHTML(bannerTitleStr)}"`;
-      } else {
-        banner.style.display = 'none';
-      }
-      
-      if (labels.length > 0 || contextEditing) {
-        actionButtons.style.display = 'block';
-      } else {
-        actionButtons.style.display = 'none';
-      }
-
-      listContainer.innerHTML = '';
-
-      if(labels.length === 0) {
-        listContainer.innerHTML = '<div class="empty-state" id="empty-state">No parts scanned yet.</div>';
-      } else {
-        labels.forEach((label) => {
-          const showOosFeature = (contextEditing && contextEditing.type === 'job') || !contextEditing;
-          const oosBadge = (showOosFeature && label.oos) ? '<span class="oos-badge">On Order</span>' : '';
-          const locBadge = label.loc ? `<span class="loc-badge"> ${escapeHTML(label.loc)}</span>` : '';
-          const oosBtnClass = label.oos ? 'btn-action oos active' : 'btn-action oos';
-          const oosBtnText = label.oos ? 'Ordered' : 'On Order';
-          const oosButtonHtml = showOosFeature ? `<button class="${oosBtnClass}" onclick="toggleOOS('${label.id}')">${oosBtnText}</button>` : '';
-
-          const qtyVal = parseInt(label.qty) || 1;
-
-          listContainer.innerHTML += `
-            <div class="scanned-item">
-              <div class="item-part-line">${escapeHTML(label.partNo)}</div>
-              <div class="item-desc-line">${oosBadge}${locBadge} ${escapeHTML(label.desc || 'No description')}</div>
-              <div class="item-footer-row">
-                <div class="qty-badge">
-                  <button class="qty-btn" onclick="adjustQty('${label.id}', -1)">-</button>
-                  <span>Qty: ${qtyVal}</span>
-                  <button class="qty-btn" onclick="adjustQty('${label.id}', 1)">+</button>
-                </div>
-                <div class="item-actions">
-                  ${oosButtonHtml}
-                  <button class="btn-action edit" onclick="editLabel('${label.id}')">Edit</button>
-                  <button class="btn-action remove" onclick="removeLabel('${label.id}')">Remove</button>
-                </div>
-              </div>
-            </div>
-          `;
-        });
-      }
-
-      // Render Job Cards (Collapsible & Persistent State)
-      const jobsSection = document.getElementById('jobs-section');
-      const jobsList = document.getElementById('jobs-list');
-      const jobsListContainer = document.getElementById('jobs-list-container');
-      const jobsTitleText = document.getElementById('jobs-title-text');
-      document.getElementById('jobs-count-badge').innerText = savedJobs.length;
-
-      if(savedJobs.length > 0) {
-        jobsSection.style.display = 'block';
-        jobsListContainer.style.display = 'block';
-        jobsTitleText.innerText = 'My Saved Job Cards';
-        
-        jobsList.innerHTML = '';
-        savedJobs.forEach(job => {
-          const totalJobQty = job.items.reduce((sum, item) => sum + (parseInt(item.qty) || 1), 0);
-          const jobNoStr = job.jobNo || job.name || 'JOB';
-          const fullJobTitle = job.description ? `${jobNoStr} - ${job.description}` : jobNoStr;
-          
-          jobsList.innerHTML += `
-            <div class="group-card job-card">
-              <div class="group-header">
-                <div>
-                  <span class="group-title">${escapeHTML(fullJobTitle)}</span> 
-                  <span class="group-count" style="margin-left: 5px;">${totalJobQty} items</span>
-                </div>
-                <div style="font-size:12px; color:#888;">${escapeHTML(job.date)}</div>
-              </div>
-              <div class="group-actions job-actions-collapsed">
-                <button class="btn-view" onclick="viewJob('${job.id}')">View</button>
-                <button class="btn-job-more" type="button" onclick="toggleJobActions(this)">More ▾</button>
-                <div class="job-extra-actions" style="display:none;">
-                  <button class="btn-edit-group" onclick="loadContextToWorkbench('job', '${job.id}')">Edit</button>
-                  <button class="btn-delete-group" onclick="deleteJob('${job.id}')">Delete</button>
-                </div>
-              </div>
-            </div>
-          `;
-        });
-      } else {
-        jobsSection.style.display = 'block';
-        jobsList.innerHTML = '<div class="empty-state">No job cards saved yet.</div>';
-      }
-
-      // Render Template Groups
-      const groupsSection = document.getElementById('groups-section');
-      const groupsList = document.getElementById('groups-list');
-      const groupsListContainer = document.getElementById('groups-list-container');
-      const groupsTitleText = document.getElementById('groups-title-text');
-      document.getElementById('groups-count-badge').innerText = savedGroups.length;
-
-      groupsSection.style.display = 'block';
-      groupsListContainer.style.display = 'block';
-      groupsTitleText.innerText = 'My Template Groups';
-
-      if(savedGroups.length > 0) {
-        groupsList.innerHTML = '';
-        [...savedGroups].sort((a,b)=>(b.favorite-a.favorite)||(b.id===lastUsedGroupId)-(a.id===lastUsedGroupId)).forEach(group => {
-          const totalGroupQty = group.items.reduce((sum, item) => sum + (parseInt(item.qty) || 1), 0);
-          const favLabel = group.favorite ? '★' : '☆';
-          const lastLabel = group.id===lastUsedGroupId ? '<span class="last-used-badge">Last Used</span>' : '';
-          groupsList.innerHTML += `
-            <div class="group-card" data-search="${escapeHTML(group.name + ' ' + group.items.map(item => item.partNo + ' ' + (item.desc || '') + ' ' + (item.loc || '')).join(' '))}">
-              <div class="group-header">
-                <div><span class="group-title">${escapeHTML(group.name)}</span> <span class="group-count">${totalGroupQty} items</span> ${lastLabel}</div>
-                <button class="favorite-btn ${group.favorite?'active':''}" title="${group.favorite?'Remove from favourites':'Add to favourites'}" onclick="toggleGroupFavorite('${group.id}')">${favLabel}</button>
-              </div>
-              <div class="group-actions">
-                <button class="btn-load" onclick="loadTemplateToList('${group.id}')">Load to List</button>
-                <button class="btn-more-group" type="button" onclick="toggleGroupActions('${group.id}')" aria-expanded="false" aria-controls="group-actions-${group.id}">More ▾</button>
-                <div class="group-actions-secondary" id="group-actions-${group.id}" style="display:none;">
-                  <button class="btn-barcode-group" onclick="viewGroupBarcodes('${group.id}')">Screen Barcodes</button>
-                    <button class="btn-edit-group" onclick="loadContextToWorkbench('group', '${group.id}')">Edit</button>
-                  <button class="btn-delete-group" onclick="deleteGroup('${group.id}')">Delete</button>
-                </div>
-              </div>
-            </div>
-          `;
-        });
-      } else {
-        groupsList.innerHTML = '<div class="empty-state">No template groups saved yet. Add parts to the active list, then tap Save This Part Set.</div>';
-      }
-
-      // Scan History
-      const historySection = document.getElementById('history-section');
-      const historyList = document.getElementById('history-list');
-      historySection.style.display = 'block';
-      historyList.style.display = 'block';
-      if(scanHistory.length > 0) {
-        historyList.innerHTML = '';
-        scanHistory.forEach(hist => {
-          const safeDesc = encodeURIComponent(hist.desc || '');
-          const safeLoc = encodeURIComponent(hist.loc || '');
-          historyList.innerHTML += `
-            <div class="scanned-item">
-              <div class="item-part-line">${escapeHTML(hist.partNo)}</div>
-              <div class="item-desc-line">${hist.loc ? '<span class="loc-badge"> ' + escapeHTML(hist.loc) + '</span>' : ''}${escapeHTML(hist.desc || 'No description')}</div>
-              <div class="item-footer-row">
-                <span style="font-size: 11px; color: #888;">${escapeHTML(hist.date)}</span>
-                <div class="item-actions">
-                  <button class="btn-action edit" onclick="addFromHistory('${escapeHTML(hist.partNo)}', '${safeDesc}', '${safeLoc}')">Re-Add</button>
-                </div>
-              </div>
-            </div>
-          `;
-        });
-      } else {
-        historyList.innerHTML = '<div class="empty-state">No scans recorded yet.</div>';
-      }
-      const savedGroupFilter = document.getElementById('group-filter');
-      if (savedGroupFilter) filterSavedGroups(savedGroupFilter.value);
-      requestAnimationFrame(updateSavedSectionHeight);
-    }
-
-    function toggleJobActions(button) {
-      const card = button.closest('.job-card');
-      if (!card) return;
-      const extra = card.querySelector('.job-extra-actions');
-      if (!extra) return;
-      const isOpen = extra.style.display !== 'none';
-      extra.style.display = isOpen ? 'none' : 'flex';
-      button.textContent = isOpen ? 'More ▾' : 'Less ▴';
-    }
-
-    // Saved-set utilities focused on parts collation, not stock management.
-    function filterSavedGroups(value) {
-      const query = String(value || '').trim().toLowerCase();
-      const cards = document.querySelectorAll('#groups-list .group-card');
-      cards.forEach(card => {
-        const text = (card.dataset.search || card.textContent || '').toLowerCase();
-        card.style.display = !query || text.includes(query) ? '' : 'none';
-      });
-
-    }
-
-    function toggleGroupActions(groupId){
-      const panel = document.getElementById(`group-actions-${groupId}`);
-      const button = document.querySelector(`[aria-controls="group-actions-${groupId}"]`);
-      if(!panel || !button) return;
-      const isOpen = panel.style.display !== 'none';
-      panel.style.display = isOpen ? 'none' : 'grid';
-      button.setAttribute('aria-expanded', String(!isOpen));
-      button.textContent = isOpen ? 'More ▾' : 'Less ▴';
-    }
-
-    function toggleGroupFavorite(groupId){ const group=savedGroups.find(g=>g.id===groupId); if(!group)return; group.favorite=!group.favorite; saveGroupsData(); renderUI(); showNotification(group.favorite?'Added to favourites.':'Removed from favourites.'); }
-    function duplicateGroup(groupId) {
-      const group = savedGroups.find(g => g.id === groupId);
-      if (!group) return;
-      const suggested = `${group.name} COPY`;
-      const name = prompt('Name for the duplicated set:', suggested);
-      if (name === null) return;
-      if (!name.trim()) { showNotification('Please enter a name for the set.'); return; }
-      const copy = {id: 'group_' + Date.now().toString(), name: name.trim().toUpperCase(), items: group.items.map(item => ({partNo:item.partNo, desc:item.desc || '', loc:item.loc || '', qty:validQty(item.qty), oos:false}))};
-      savedGroups.unshift(copy);
-      if (!saveGroupsData()) return;
-      renderUI();
-      showNotification(`Duplicated set as "${copy.name}".`);
-    }
-
-    function downloadTextFile(filename, content, mime = 'text/plain;charset=utf-8') {
-      const blob = new Blob([content], {type:mime});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = filename;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    }
-
-    function csvCell(value) { return '"' + String(value ?? '').replace(/"/g, '""') + '"'; }
-    function itemsToCSV(items) {
-      const rows = [['Part Number','Description','Location','Quantity']];
-      (items || []).forEach(item => rows.push([item.partNo, item.desc || '', item.loc || '', validQty(item.qty)]));
-      return '\uFEFF' + rows.map(row => row.map(csvCell).join(',')).join('\r\n');
-    }
-    function exportGroupCSV(groupId) {
-      const group = savedGroups.find(g => g.id === groupId); if (!group) return;
-      downloadTextFile(`${safeFilename(group.name)}-parts.csv`, itemsToCSV(group.items), 'text/csv;charset=utf-8');
-      showNotification('Saved set exported as CSV.');
-    }
-    function exportActiveListCSV() {
-      if (!labels.length) { showNotification('The active list is empty.'); return; }
-      downloadTextFile('active-parts-list.csv', itemsToCSV(labels), 'text/csv;charset=utf-8');
-      showNotification('Active list exported as CSV.');
-    }
-    function safeFilename(value) { return String(value || 'parts').normalize('NFKD').replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0,80) || 'parts'; }
-
-
-  </script>
+      <p class="hint">Pads can be recorded as remaining percentage (%) or thickness (mm). Select the unit for each position. Rotor measurements are always in mm.</p>
+    </section>
+    <section class="panel">
+      <div class="field"><label for="notes">Additional Notes <span class="optional">(Optional)</span></label><textarea id="notes" rows="3" placeholder="Any other service notes..."></textarea></div>
+      <div class="actions no-print"><span class="status" id="formStatus">* Required fields must be completed.</span><button class="secondary" id="clearForm">Clear Form</button><button class="primary" id="saveRecord">Save Service Record</button></div>
+    </section>
+  </main>
+
+  <main id="recordsView" class="hidden">
+    <section class="panel">
+      <div class="records-head"><h2 style="margin:0">Saved Service Records</h2><input id="search" placeholder="Search bus number or service type..."></div>
+      <div id="recordList"></div>
+    </section>
+  </main>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const STORAGE_KEY='workshopBusFaultRegister_v1';
+let records=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
+let editingId=null;
+const positions=['NSF','OSF','NSR','OSR'];
+const trailerPositions=['NST','OST'];
+function makeFaultRow(fault='',done=false,note=''){
+ const item=document.createElement('div');
+ item.className='fault-item'+(done?' done':'');
+ item.innerHTML=`<div class="fault-main">
+   <input class="fault-done" type="checkbox" aria-label="Mark fault as repaired">
+   <input class="fault-text" aria-label="Fault description" placeholder="Enter fault description">
+   <button type="button" class="danger small remove-row" title="Remove fault">✕</button>
+ </div>
+ <details class="fault-extra"><summary>＋ Repair note</summary><textarea class="repair-note" placeholder="Describe the repair carried out..."></textarea></details>`;
+ item.querySelector('.fault-text').value=fault;
+ item.querySelector('.fault-done').checked=!!done;
+ item.querySelector('.repair-note').value=note||'';
+ item.querySelector('.fault-done').addEventListener('change',e=>item.classList.toggle('done',e.target.checked));
+ item.querySelector('.remove-row').addEventListener('click',()=>item.remove());
+ $('faultRows').appendChild(item);
+}
+function makeBrakeRow(pos,optional=false,targetId){
+ const card=document.createElement('div');card.className='brake-position';card.dataset.position=pos;
+ card.innerHTML=`<div class="brake-position-label">${pos}</div>
+ <div class="brake-fields">
+  <div class="brake-field"><label>Pad ${optional?'':'*'}</label><div class="brake-entry"><input class="pad-value" type="number" min="0" step="any" placeholder="—" ${optional?'':'required'}><select class="pad-unit" aria-label="${pos} pad unit"><option value="%">%</option><option value="mm">mm</option></select></div></div>
+  <div class="brake-field"><label>Rotor mm ${optional?'':'*'}</label><div class="brake-entry"><input class="rotor-value" type="number" min="0" step="any" placeholder="—" ${optional?'':'required'}></div></div>
+ </div>`;
+ card.querySelector('.pad-value').setAttribute('aria-label',pos+' pad measurement');
+ card.querySelector('.rotor-value').setAttribute('aria-label',pos+' rotor measurement in mm');
+ $(targetId).appendChild(card);
+}
+function initForm(){
+ $('faultRows').innerHTML='';$('frontPair').innerHTML='';$('rearPair').innerHTML='';$('trailerRows').innerHTML='';
+ makeFaultRow();
+ makeBrakeRow('NSF',false,'frontPair');makeBrakeRow('OSF',false,'frontPair');
+ makeBrakeRow('NSR',false,'rearPair');makeBrakeRow('OSR',false,'rearPair');
+ makeBrakeRow('NST',true,'trailerRows');makeBrakeRow('OST',true,'trailerRows');
+ $('date').value=new Date().toISOString().slice(0,10);
+}
+function readBrakes(id){
+ return [...$(id).querySelectorAll('.brake-position')].map(card=>({position:card.dataset.position,pad:card.querySelector('.pad-value').value,unit:card.querySelector('.pad-unit').value,rotor:card.querySelector('.rotor-value').value}));
+}
+function setBrakes(id,data){
+ const map=Object.fromEntries((data||[]).map(x=>[x.position,x]));
+ [...$(id).querySelectorAll('.brake-position')].forEach(card=>{const x=map[card.dataset.position];if(x){card.querySelector('.pad-value').value=x.pad??'';card.querySelector('.pad-unit').value=x.unit||'%';card.querySelector('.rotor-value').value=x.rotor??'';}});
+}
+function readForm(){return {id:editingId||String(Date.now()),bus:$('bus').value.trim(),date:$('date').value,kms:$('kms').value,service:$('service').value,faults:[...$('faultRows').querySelectorAll('.fault-item')].map(item=>({fault:item.querySelector('.fault-text').value.trim(),done:item.querySelector('.fault-done').checked,note:item.querySelector('.repair-note').value.trim()})).filter(x=>x.fault||x.note),brakes:[...readBrakes('frontPair'),...readBrakes('rearPair')],trailer:readBrakes('trailerRows'),notes:$('notes').value.trim(),updated:new Date().toISOString()};}
+function validate(r){
+ if(!r.bus||!r.date||r.kms===''||!r.service){alert('Please complete Bus Number, Date, KMS and Service Type.');return false;}
+ if(r.brakes.some(x=>x.pad===''||x.rotor==='')){alert('All four front and rear pad and rotor measurements are required.');return false;}
+ if(r.brakes.some(x=>Number(x.pad)<0||Number(x.rotor)<0)||r.trailer.some(x=>(x.pad!==''&&Number(x.pad)<0)||(x.rotor!==''&&Number(x.rotor)<0))){alert('Measurements cannot be negative.');return false;}
+ return true;
+}
+function resetForm(){editingId=null;initForm();$('bus').value='';$('kms').value='';$('service').value='';$('notes').value='';$('saveRecord').textContent='Save Service Record';$('formStatus').textContent='* Required fields must be completed.';}
+function showTab(which){const entry=which==='entry';$('entryView').classList.toggle('hidden',!entry);$('recordsView').classList.toggle('hidden',entry);$('entryTab').classList.toggle('active',entry);$('recordsTab').classList.toggle('active',!entry);if(!entry)renderRecords();}
+function save(){const r=readForm();if(!validate(r))return;const idx=records.findIndex(x=>x.id===r.id);if(idx>=0)records[idx]=r;else records.unshift(r);localStorage.setItem(STORAGE_KEY,JSON.stringify(records));$('formStatus').textContent='Record saved.';resetForm();showTab('records');}
+function renderRecords(){
+ const q=$('search').value.trim().toLowerCase();const list=records.filter(r=>(r.bus+' '+r.service+' '+r.date).toLowerCase().includes(q));$('recordList').innerHTML='';
+ if(!list.length){$('recordList').innerHTML='<div class="empty">No saved service records found.</div>';return;}
+ list.forEach(r=>{const card=document.createElement('div');card.className='record-card';const left=document.createElement('div');left.innerHTML=`<div class="record-title">Bus ${escapeHtml(r.bus)} · ${escapeHtml(r.service)} Service</div><div class="record-meta">${escapeHtml(r.date)} &nbsp;|&nbsp; ${Number(r.kms).toLocaleString('en-AU')} KMS &nbsp;|&nbsp; ${r.faults.length} fault(s)</div>`;const right=document.createElement('div');right.className='record-actions no-print';right.innerHTML='<button class="secondary small">View / Edit</button><button class="secondary small">Print</button><button class="danger small">Delete</button>';right.children[0].onclick=()=>editRecord(r.id);right.children[1].onclick=()=>printRecord(r.id);right.children[2].onclick=()=>deleteRecord(r.id);card.append(left,right);$('recordList').appendChild(card);});
+}
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function editRecord(id){const r=records.find(x=>x.id===id);if(!r)return;resetForm();editingId=id;$('bus').value=r.bus;$('date').value=r.date;$('kms').value=r.kms;$('service').value=r.service;$('notes').value=r.notes||'';$('faultRows').innerHTML='';(r.faults.length?r.faults:[{fault:'',done:false,note:''}]).forEach(x=>makeFaultRow(x.fault,x.done??false,x.note??x.repair??''));setBrakes('frontPair',r.brakes);setBrakes('rearPair',r.brakes);setBrakes('trailerRows',r.trailer);$('saveRecord').textContent='Update Service Record';showTab('entry');window.scrollTo({top:0,behavior:'smooth'});}
+function deleteRecord(id){if(!confirm('Delete this service record? This cannot be undone.'))return;records=records.filter(r=>r.id!==id);localStorage.setItem(STORAGE_KEY,JSON.stringify(records));renderRecords();}
+function printRecord(id){
+ const r=records.find(x=>x.id===id);if(!r)return;
+ const rows=(items)=>items.map(x=>`<tr><td>${escapeHtml(x.position)}</td><td>${x.pad===''?'—':escapeHtml(x.pad+' '+x.unit)}</td><td>${x.rotor===''?'—':escapeHtml(x.rotor+' mm')}</td></tr>`).join('');
+ const faults=r.faults.length?r.faults.map(x=>`<tr><td>${x.done?'☑ ': '☐ '}${escapeHtml(x.fault)}${x.done?' (Repaired)':''}</td><td>${escapeHtml(x.note??x.repair??'')}</td></tr>`).join(''):'<tr><td colspan="2">No faults recorded</td></tr>';
+ const w=window.open('','_blank');if(!w){alert('Please allow pop-ups to print this report.');return;}
+ w.document.write(`<!doctype html><html><head><title>Bus ${escapeHtml(r.bus)} Service Report</title><style>body{font:14px Arial;padding:28px;color:#222}h1{font-size:22px}h2{font-size:16px;margin-top:24px}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #bbb;padding:8px;text-align:left}th{background:#eee}.meta{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}.label{font-size:11px;color:#555;text-transform:uppercase}.value{font-weight:bold} 
+.brake-groups{display:flex;flex-direction:column;gap:12px}
+.brake-axle{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.axle-heading{background:#f0f4f8;padding:8px 11px;font-size:12px;font-weight:800;letter-spacing:.4px;color:#334155;display:flex;justify-content:space-between;align-items:center}
+.axle-heading span{font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted)}
+.brake-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0}
+.brake-position{padding:9px 10px;min-width:0}
+.brake-position+.brake-position{border-left:1px solid var(--line)}
+.brake-position-label{font-weight:800;font-size:14px;color:var(--navy);margin-bottom:7px}
+.brake-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px}
+.brake-field{min-width:0}
+.brake-field label{display:block;font-size:10px;color:var(--muted);font-weight:700;margin-bottom:3px;text-transform:uppercase}
+.brake-field .brake-entry{display:flex;gap:3px;justify-content:flex-start}
+.brake-field .brake-entry input{width:100%;min-width:0;padding:7px 4px;text-align:center;font-size:13px}
+.brake-field .brake-entry select{width:43px;flex:0 0 43px;min-width:0;padding:6px 1px;font-size:11px}
+@media(max-width:600px){
+ .brake-position{padding:8px 6px}
+ .brake-fields{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:5px}
+ .brake-field label{font-size:9px;white-space:nowrap}
+ .brake-field .brake-entry input{padding:7px 2px;font-size:12px}
+ .brake-field .brake-entry select{width:38px;flex-basis:38px;font-size:10px}
+ .brake-position-label{font-size:13px}
+}
+</style></head><body><h1>Workshop Bus Service Report</h1><div class="meta"><div><div class="label">Bus Number</div><div class="value">${escapeHtml(r.bus)}</div></div><div><div class="label">Date</div><div class="value">${escapeHtml(r.date)}</div></div><div><div class="label">KMS</div><div class="value">${Number(r.kms).toLocaleString('en-AU')}</div></div><div><div class="label">Service Type</div><div class="value">${escapeHtml(r.service)}</div></div></div><h2>Fault List &amp; Repair Notes</h2><table><tr><th>Fault / Status</th><th>Repair Note</th></tr>${faults}</table><h2>Brake Measurements</h2><table><tr><th>Position</th><th>Pad Measurement</th><th>Rotor</th></tr>${rows(r.brakes)}</table><h2>Trailer Measurements (Optional)</h2><table><tr><th>Position</th><th>Pad Measurement</th><th>Rotor</th></tr>${rows(r.trailer)}</table>${r.notes?`<h2>Additional Notes</h2><p>${escapeHtml(r.notes)}</p>`:''}<script>window.onload=()=>window.print()<\/script></body></html>`);
+ w.document.close();
+}
+$('addFault').onclick=()=>makeFaultRow();$('saveRecord').onclick=save;$('clearForm').onclick=()=>{if(confirm('Clear the current form?'))resetForm();};
+$('entryTab').onclick=()=>showTab('entry');$('recordsTab').onclick=()=>showTab('records');$('newTop').onclick=()=>{resetForm();showTab('entry');window.scrollTo({top:0,behavior:'smooth'});};$('search').addEventListener('input',renderRecords);
+initForm();renderRecords();
+</script>
 </body>
 </html>
