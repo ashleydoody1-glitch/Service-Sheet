@@ -89,13 +89,7 @@ td input{padding:9px} .fault-table th:first-child{width:43%}.fault-table th:nth-
     </section>
 
     <section class="panel">
-      <div class="section-head"><h2 style="margin:0">2. Faults &amp; Repairs</h2><button class="secondary no-print" id="addFault">＋ Add Fault</button></div>
-      <div id="faultRows" class="fault-list"></div>
-      <p class="hint">Tick a fault when it has been repaired. Open “Repair note” to record what was done. Completed faults are crossed out.</p>
-    </section>
-
-    <section class="panel">
-      <h2>3. Brake Measurements</h2>
+      <h2>2. Brake Measurements</h2>
       <div class="brake-groups">
         <div class="brake-axle">
           <div class="axle-heading">FRONT <span>Required</span></div>
@@ -112,6 +106,12 @@ td input{padding:9px} .fault-table th:first-child{width:43%}.fault-table th:nth-
       </div>
       <p class="hint">Pads can be recorded as remaining percentage (%) or thickness (mm). Select the unit for each position. Rotor measurements are always in mm.</p>
     </section>
+    <section class="panel">
+      <div class="section-head"><h2 style="margin:0">3. Faults &amp; Repairs</h2><button class="secondary no-print" id="addFault">＋ Add Fault</button></div>
+      <div id="faultRows" class="fault-list"></div>
+      <p class="hint">Tick a fault when it has been repaired. Open “Repair note” to record what was done. Completed faults are crossed out.</p>
+    </section>
+
     <section class="panel">
       <div class="field"><label for="notes">Additional Notes <span class="optional">(Optional)</span></label><textarea id="notes" rows="3" placeholder="Any other service notes..."></textarea></div>
       <div class="actions no-print"><span class="status" id="formStatus">* Required fields must be completed.</span><button class="secondary" id="clearForm">Clear Form</button><button class="primary" id="saveRecord">Save Service Record</button></div>
@@ -146,6 +146,14 @@ function makeFaultRow(fault='',done=false,note=''){
  item.querySelector('.repair-note').value=note||'';
  item.querySelector('.fault-done').addEventListener('change',e=>item.classList.toggle('done',e.target.checked));
  item.querySelector('.remove-row').addEventListener('click',()=>item.remove());
+ item.querySelector('.fault-text').addEventListener('keydown',e=>{
+   if(e.key==='Enter'){
+     e.preventDefault();
+     makeFaultRow();
+     const rows=$('faultRows').querySelectorAll('.fault-item');
+     rows[rows.length-1].querySelector('.fault-text').focus();
+   }
+ });
  $('faultRows').appendChild(item);
 }
 function makeBrakeRow(pos,optional=false,targetId){
