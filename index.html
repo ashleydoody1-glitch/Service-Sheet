@@ -56,6 +56,14 @@ td input{padding:9px} .fault-table th:first-child{width:43%}.fault-table th:nth-
 .brake-field .brake-entry{display:flex;gap:3px;justify-content:flex-start}
 .brake-field .brake-entry input{width:100%;min-width:0;padding:7px 4px;text-align:center;font-size:13px}
 .brake-field .brake-entry select{width:43px;flex:0 0 43px;min-width:0;padding:6px 1px;font-size:11px}
+.brake-value{transition:background-color .15s,border-color .15s}
+.brake-value.level-green{background:#e8f5ec;border-color:#79bd8d;color:#14532d}
+.brake-value.level-yellow{background:#fff6d9;border-color:#e6c34f;color:#854d0e}
+.brake-value.level-red{background:#fee8e7;border-color:#e49a96;color:#991b1b}
+.brake-legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin:0 0 12px;font-size:11px;color:var(--muted)}
+.brake-legend span{display:inline-flex;align-items:center;gap:5px}
+.legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.legend-green{background:#36a269}.legend-yellow{background:#e4b52c}.legend-red{background:#d9534f}
 @media(max-width:600px){
  .brake-position{padding:8px 6px}
  .brake-fields{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:5px}
@@ -90,6 +98,11 @@ td input{padding:9px} .fault-table th:first-child{width:43%}.fault-table th:nth-
 
     <section class="panel">
       <h2>2. Brake Measurements</h2>
+      <div class="brake-legend">
+        <span><i class="legend-dot legend-green"></i> Good</span>
+        <span><i class="legend-dot legend-yellow"></i> Approaching minimum</span>
+        <span><i class="legend-dot legend-red"></i> At / below minimum</span>
+      </div>
       <div class="brake-groups">
         <div class="brake-axle">
           <div class="axle-heading">FRONT <span>Required</span></div>
@@ -160,12 +173,32 @@ function makeBrakeRow(pos,optional=false,targetId){
  const card=document.createElement('div');card.className='brake-position';card.dataset.position=pos;
  card.innerHTML=`<div class="brake-position-label">${pos}</div>
  <div class="brake-fields">
-  <div class="brake-field"><label>Pad ${optional?'':'*'}</label><div class="brake-entry"><input class="pad-value" type="number" min="0" step="any" placeholder="—" ${optional?'':'required'}><select class="pad-unit" aria-label="${pos} pad unit"><option value="%">%</option><option value="mm">mm</option></select></div></div>
-  <div class="brake-field"><label>Rotor mm ${optional?'':'*'}</label><div class="brake-entry"><input class="rotor-value" type="number" min="0" step="any" placeholder="—" ${optional?'':'required'}></div></div>
+  <div class="brake-field"><label>Pad ${optional?'':'*'}</label><div class="brake-entry"><input class="pad-value brake-value" type="number" min="0" step="any" placeholder="—" ${optional?'':'required'}><select class="pad-unit" aria-label="${pos} pad unit"><option value="%">%</option><option value="mm">mm</option></select></div></div>
+  <div class="brake-field"><label>Rotor mm ${optional?'':'*'}</label><div class="brake-entry"><input class="rotor-value brake-value" type="number" min="0" step="any" placeholder="—" ${optional?'':'required'}></div></div>
  </div>`;
  card.querySelector('.pad-value').setAttribute('aria-label',pos+' pad measurement');
  card.querySelector('.rotor-value').setAttribute('aria-label',pos+' rotor measurement in mm');
+ const padInput=card.querySelector('.pad-value');
+ const padUnit=card.querySelector('.pad-unit');
+ const rotorInput=card.querySelector('.rotor-value');
+ const refresh=()=>{
+   colourBrakeValue(padInput,padUnit.value==='%'?20:5);
+   colourBrakeValue(rotorInput,37);
+ };
+ padInput.addEventListener('input',refresh);
+ padUnit.addEventListener('change',refresh);
+ rotorInput.addEventListener('input',refresh);
+ card._refreshBrakeColours=refresh;
  $(targetId).appendChild(card);
+}
+function colourBrakeValue(input,minimum){
+ input.classList.remove('level-green','level-yellow','level-red');
+ if(input.value==='')return;
+ const value=Number(input.value);
+ if(!Number.isFinite(value))return;
+ if(value<=minimum)input.classList.add('level-red');
+ else if(value<=minimum*1.25)input.classList.add('level-yellow');
+ else input.classList.add('level-green');
 }
 function initForm(){
  $('faultRows').innerHTML='';$('frontPair').innerHTML='';$('rearPair').innerHTML='';$('trailerRows').innerHTML='';
@@ -180,7 +213,7 @@ function readBrakes(id){
 }
 function setBrakes(id,data){
  const map=Object.fromEntries((data||[]).map(x=>[x.position,x]));
- [...$(id).querySelectorAll('.brake-position')].forEach(card=>{const x=map[card.dataset.position];if(x){card.querySelector('.pad-value').value=x.pad??'';card.querySelector('.pad-unit').value=x.unit||'%';card.querySelector('.rotor-value').value=x.rotor??'';}});
+ [...$(id).querySelectorAll('.brake-position')].forEach(card=>{const x=map[card.dataset.position];if(x){card.querySelector('.pad-value').value=x.pad??'';card.querySelector('.pad-unit').value=x.unit||'%';card.querySelector('.rotor-value').value=x.rotor??'';}card._refreshBrakeColours?.();});
 }
 function readForm(){return {id:editingId||String(Date.now()),bus:$('bus').value.trim(),date:$('date').value,kms:$('kms').value,service:$('service').value,faults:[...$('faultRows').querySelectorAll('.fault-item')].map(item=>({fault:item.querySelector('.fault-text').value.trim(),done:item.querySelector('.fault-done').checked,note:item.querySelector('.repair-note').value.trim()})).filter(x=>x.fault||x.note),brakes:[...readBrakes('frontPair'),...readBrakes('rearPair')],trailer:readBrakes('trailerRows'),notes:$('notes').value.trim(),updated:new Date().toISOString()};}
 function validate(r){
@@ -220,6 +253,14 @@ function printRecord(id){
 .brake-field .brake-entry{display:flex;gap:3px;justify-content:flex-start}
 .brake-field .brake-entry input{width:100%;min-width:0;padding:7px 4px;text-align:center;font-size:13px}
 .brake-field .brake-entry select{width:43px;flex:0 0 43px;min-width:0;padding:6px 1px;font-size:11px}
+.brake-value{transition:background-color .15s,border-color .15s}
+.brake-value.level-green{background:#e8f5ec;border-color:#79bd8d;color:#14532d}
+.brake-value.level-yellow{background:#fff6d9;border-color:#e6c34f;color:#854d0e}
+.brake-value.level-red{background:#fee8e7;border-color:#e49a96;color:#991b1b}
+.brake-legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin:0 0 12px;font-size:11px;color:var(--muted)}
+.brake-legend span{display:inline-flex;align-items:center;gap:5px}
+.legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.legend-green{background:#36a269}.legend-yellow{background:#e4b52c}.legend-red{background:#d9534f}
 @media(max-width:600px){
  .brake-position{padding:8px 6px}
  .brake-fields{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:5px}
