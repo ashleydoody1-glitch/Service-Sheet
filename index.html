@@ -183,7 +183,7 @@ function makeBrakeRow(pos,optional=false,targetId){
  const rotorInput=card.querySelector('.rotor-value');
  const refresh=()=>{
    colourBrakeValue(padInput,padUnit.value==='%'?20:5);
-   colourBrakeValue(rotorInput,37);
+   colourBrakeValue(rotorInput,37,40);
  };
  padInput.addEventListener('input',refresh);
  padUnit.addEventListener('change',refresh);
@@ -191,13 +191,13 @@ function makeBrakeRow(pos,optional=false,targetId){
  card._refreshBrakeColours=refresh;
  $(targetId).appendChild(card);
 }
-function colourBrakeValue(input,minimum){
+function colourBrakeValue(input,minimum,greenAbove=minimum*1.25){
  input.classList.remove('level-green','level-yellow','level-red');
  if(input.value==='')return;
  const value=Number(input.value);
  if(!Number.isFinite(value))return;
  if(value<=minimum)input.classList.add('level-red');
- else if(value<=minimum*1.25)input.classList.add('level-yellow');
+ else if(value<=greenAbove)input.classList.add('level-yellow');
  else input.classList.add('level-green');
 }
 function initForm(){
