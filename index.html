@@ -122,6 +122,7 @@ td input{padding:9px} .fault-table th:first-child{width:43%}.fault-table th:nth-
         <div class="field"><label for="date">Date <span class="required">*</span></label><input id="date" type="date" required></div>
         <div class="field"><label for="kms">KMS <span class="required">*</span></label><input id="kms" type="number" min="0" step="1" placeholder="Odometer reading" required></div>
         <div class="field"><label for="service">Service Type <span class="required">*</span></label><select id="service" required><option value="">Select service</option><option>A</option><option>B3</option><option>B6</option><option>B9</option><option>C</option></select></div>
+        <div class="field hidden" id="aServiceWrap"><label for="aService">A Service Type <span class="required">*</span></label><select id="aService"><option value="">Select A service</option><option>A1</option><option>A2</option><option>A4</option><option>A5</option><option>A7</option><option>A8</option><option>A10</option><option>A11</option></select></div>
       </div>
     </section>
 
@@ -252,6 +253,11 @@ function colourBrakeValue(input,minimum,greenAbove=minimum*1.25){
  else if(value<=greenAbove)input.classList.add('level-yellow');
  else input.classList.add('level-green');
 }
+function updateAServiceVisibility(){
+ const isA=$('service').value==='A';
+ $('aServiceWrap').classList.toggle('hidden',!isA);
+ if(!isA)$('aService').value='';
+}
 function initForm(){
  $('faultRows').innerHTML='';$('frontPair').innerHTML='';$('rearPair').innerHTML='';$('trailerRows').innerHTML='';
  makeFaultRow();
@@ -259,6 +265,7 @@ function initForm(){
  makeBrakeRow('NSR',false,'rearPair');makeBrakeRow('OSR',false,'rearPair');
  makeBrakeRow('NST',true,'trailerRows');makeBrakeRow('OST',true,'trailerRows');
  $('date').value=new Date().toISOString().slice(0,10);
+ $('service').value='';$('aService').value='';updateAServiceVisibility();
 }
 function readBrakes(id){
  return [...$(id).querySelectorAll('.brake-position')].map(card=>({position:card.dataset.position,pad:card.querySelector('.pad-value').value,unit:card.querySelector('.pad-unit').value,rotor:card.querySelector('.rotor-value').value,rotorNA:!!card.querySelector('.rotor-na')?.checked}));
@@ -267,14 +274,15 @@ function setBrakes(id,data){
  const map=Object.fromEntries((data||[]).map(x=>[x.position,x]));
  [...$(id).querySelectorAll('.brake-position')].forEach(card=>{const x=map[card.dataset.position];if(x){card.querySelector('.pad-value').value=x.pad??'';card.querySelector('.pad-unit').value=x.unit||'%';card.querySelector('.rotor-value').value=x.rotor??'';const na=card.querySelector('.rotor-na');if(na){na.checked=!!x.rotorNA;card.querySelector('.rotor-value').disabled=!!x.rotorNA;}}card._refreshBrakeColours?.();});
 }
-function readForm(){return {id:editingId||String(Date.now()),bus:$('bus').value.trim(),date:$('date').value,kms:$('kms').value,service:$('service').value,faults:[...$('faultRows').querySelectorAll('.fault-item')].map(item=>({fault:item.querySelector('.fault-text').value.trim(),done:item.querySelector('.fault-done').checked,note:item.querySelector('.repair-note').value.trim()})).filter(x=>x.fault||x.note),brakes:[...readBrakes('frontPair'),...readBrakes('rearPair')],trailer:readBrakes('trailerRows'),notes:$('notes').value.trim(),updated:new Date().toISOString()};}
+function readForm(){return {id:editingId||String(Date.now()),bus:$('bus').value.trim(),date:$('date').value,kms:$('kms').value,service:$('service').value,aService:$('aService').value,faults:[...$('faultRows').querySelectorAll('.fault-item')].map(item=>({fault:item.querySelector('.fault-text').value.trim(),done:item.querySelector('.fault-done').checked,note:item.querySelector('.repair-note').value.trim()})).filter(x=>x.fault||x.note),brakes:[...readBrakes('frontPair'),...readBrakes('rearPair')],trailer:readBrakes('trailerRows'),notes:$('notes').value.trim(),updated:new Date().toISOString()};}
 function validate(r){
  if(!r.bus||!r.date||r.kms===''||!r.service){alert('Please complete Bus Number, Date, KMS and Service Type.');return false;}
+ if(r.service==='A'&&!r.aService){alert('Please select the A service type (A1, A2, A4, A5, A7, A8, A10 or A11).');return false;}
  if(r.brakes.some(x=>x.pad===''||(x.rotor===''&&!x.rotorNA))){alert('All four front and rear pad measurements are required. Enter a rotor measurement or select Backing plate where no rotor measurement is possible.');return false;}
  if(r.brakes.some(x=>Number(x.pad)<0||(x.rotor!==''&&Number(x.rotor)<0))||r.trailer.some(x=>(x.pad!==''&&Number(x.pad)<0)||(x.rotor!==''&&Number(x.rotor)<0))){alert('Measurements cannot be negative.');return false;}
  return true;
 }
-function resetForm(){editingId=null;initForm();$('bus').value='';$('kms').value='';$('service').value='';$('notes').value='';$('saveRecord').textContent='Save Service Record';$('formStatus').textContent='* Required fields must be completed.';}
+function resetForm(){editingId=null;initForm();$('bus').value='';$('kms').value='';$('service').value='';$('aService').value='';updateAServiceVisibility();$('notes').value='';$('saveRecord').textContent='Save Service Record';$('formStatus').textContent='* Required fields must be completed.';}
 function showTab(which){const entry=which==='entry';$('entryView').classList.toggle('hidden',!entry);$('recordsView').classList.toggle('hidden',entry);$('entryTab').classList.toggle('active',entry);$('recordsTab').classList.toggle('active',!entry);if(!entry)renderRecords();}
 function save(){const r=readForm();if(!validate(r))return;const idx=records.findIndex(x=>x.id===r.id);if(idx>=0)records[idx]=r;else records.unshift(r);localStorage.setItem(STORAGE_KEY,JSON.stringify(records));$('formStatus').textContent='Record saved.';resetForm();showTab('records');}
 function renderRecords(){
@@ -283,7 +291,7 @@ function renderRecords(){
  list.forEach(r=>{const card=document.createElement('div');card.className='record-card';const left=document.createElement('div');left.innerHTML=`<div class="record-title">Bus ${escapeHtml(r.bus)} · ${escapeHtml(r.service)} Service</div><div class="record-meta">${escapeHtml(r.date)} &nbsp;|&nbsp; ${Number(r.kms).toLocaleString('en-AU')} KMS &nbsp;|&nbsp; ${r.faults.length} fault(s)</div>`;const right=document.createElement('div');right.className='record-actions no-print';right.innerHTML='<button class="secondary small">View / Edit</button><button class="secondary small">View Summary</button><button class="danger small">Delete</button>';right.children[0].onclick=()=>editRecord(r.id);right.children[1].onclick=()=>viewSummary(r.id);right.children[2].onclick=()=>deleteRecord(r.id);card.append(left,right);$('recordList').appendChild(card);});
 }
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function editRecord(id){const r=records.find(x=>x.id===id);if(!r)return;resetForm();editingId=id;$('bus').value=r.bus;$('date').value=r.date;$('kms').value=r.kms;$('service').value=r.service;$('notes').value=r.notes||'';$('faultRows').innerHTML='';(r.faults.length?r.faults:[{fault:'',done:false,note:''}]).forEach(x=>makeFaultRow(x.fault,x.done??false,x.note??x.repair??''));setBrakes('frontPair',r.brakes);setBrakes('rearPair',r.brakes);setBrakes('trailerRows',r.trailer);$('saveRecord').textContent='Update Service Record';showTab('entry');window.scrollTo({top:0,behavior:'smooth'});}
+function editRecord(id){const r=records.find(x=>x.id===id);if(!r)return;resetForm();editingId=id;$('bus').value=r.bus;$('date').value=r.date;$('kms').value=r.kms;$('service').value=r.service;$('aService').value=r.aService||'';updateAServiceVisibility();$('notes').value=r.notes||'';$('faultRows').innerHTML='';(r.faults.length?r.faults:[{fault:'',done:false,note:''}]).forEach(x=>makeFaultRow(x.fault,x.done??false,x.note??x.repair??''));setBrakes('frontPair',r.brakes);setBrakes('rearPair',r.brakes);setBrakes('trailerRows',r.trailer);$('saveRecord').textContent='Update Service Record';showTab('entry');window.scrollTo({top:0,behavior:'smooth'});}
 function deleteRecord(id){if(!confirm('Delete this service record? This cannot be undone.'))return;records=records.filter(r=>r.id!==id);localStorage.setItem(STORAGE_KEY,JSON.stringify(records));renderRecords();}
 function viewSummary(id){
  const r=records.find(x=>x.id===id);if(!r)return;
@@ -311,7 +319,7 @@ function viewSummary(id){
    <div class="summary-meta">
     <div><small>Date</small><strong>${esc(r.date)}</strong></div>
     <div><small>Kilometres</small><strong>${Number(r.kms).toLocaleString('en-AU')} KMS</strong></div>
-    <div><small>Service Type</small><strong>${esc(r.service)}</strong></div>
+    <div><small>Service Type</small><strong>${esc(r.service==='A'?(r.aService||'A'):r.service)}</strong></div>
    </div>
   </div>
   ${brakeSection('Brake Measurements',r.brakes)}
@@ -329,6 +337,7 @@ function closeSummary(){
 $('closeSummary').onclick=closeSummary;
 $('summaryOverlay').addEventListener('click',e=>{if(e.target===$('summaryOverlay'))closeSummary();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSummary();});
+$('service').addEventListener('change',updateAServiceVisibility);
 $('addFault').onclick=()=>makeFaultRow();$('saveRecord').onclick=save;$('clearForm').onclick=()=>{if(confirm('Clear the current form?'))resetForm();};
 $('entryTab').onclick=()=>showTab('entry');$('recordsTab').onclick=()=>showTab('records');$('newTop').onclick=()=>{resetForm();showTab('entry');window.scrollTo({top:0,behavior:'smooth'});};$('search').addEventListener('input',renderRecords);
 initForm();renderRecords();
