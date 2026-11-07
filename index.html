@@ -323,7 +323,13 @@ function save(){const r=readForm();if(!validate(r))return;const idx=records.find
 function renderRecords(){
  const q=$('search').value.trim().toLowerCase();const list=records.filter(r=>(r.bus+' '+r.service+' '+r.date).toLowerCase().includes(q));$('recordList').innerHTML='';
  if(!list.length){$('recordList').innerHTML='<div class="empty">No saved service records found.</div>';return;}
- list.forEach(r=>{const card=document.createElement('div');card.className='record-card';const left=document.createElement('div');left.innerHTML=`<div class="record-title">Bus ${escapeHtml(r.bus)} · ${escapeHtml(r.service)} Service</div><div class="record-meta">${escapeHtml(r.date)} &nbsp;|&nbsp; ${Number(r.kms).toLocaleString('en-AU')} KMS &nbsp;|&nbsp; ${r.faults.length} fault(s)</div>`;const right=document.createElement('div');right.className='record-actions no-print';right.innerHTML='<button class="secondary small">View / Edit</button><button class="secondary small">View Summary</button><button class="danger small">Delete</button>';right.children[0].onclick=()=>editRecord(r.id);right.children[1].onclick=()=>viewSummary(r.id);right.children[2].onclick=()=>deleteRecord(r.id);card.append(left,right);$('recordList').appendChild(card);});
+ list.forEach(r=>{const card=document.createElement('div');card.className='record-card';const left=document.createElement('div');left.innerHTML=`<div class="record-title">Bus ${escapeHtml(r.bus)} · ${escapeHtml(r.service)} Service</div><div class="record-meta">${escapeHtml(formatAuDate(r.date))} &nbsp;|&nbsp; ${Number(r.kms).toLocaleString('en-AU')} KMS &nbsp;|&nbsp; ${r.faults.length} fault(s)</div>`;const right=document.createElement('div');right.className='record-actions no-print';right.innerHTML='<button class="secondary small">View / Edit</button><button class="secondary small">View Summary</button><button class="danger small">Delete</button>';right.children[0].onclick=()=>editRecord(r.id);right.children[1].onclick=()=>viewSummary(r.id);right.children[2].onclick=()=>deleteRecord(r.id);card.append(left,right);$('recordList').appendChild(card);});
+}
+function formatAuDate(value){
+ if(!value)return '';
+ const parts=String(value).split('-');
+ if(parts.length===3&&parts[0].length===4)return `${parts[2]}/${parts[1]}/${parts[0]}`;
+ return value;
 }
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function editRecord(id){const r=records.find(x=>x.id===id);if(!r)return;resetForm();editingId=id;$('bus').value=r.bus;$('date').value=r.date;$('kms').value=r.kms;$('service').value=r.service;$('aService').value=r.aService||'';updateAServiceVisibility();$('notes').value=r.notes||'';$('faultRows').innerHTML='';(r.faults.length?r.faults:[{fault:'',done:false,note:''}]).forEach(x=>makeFaultRow(x.fault,x.done??false,x.note??x.repair??''));setBrakes('frontPair',r.brakes);setBrakes('rearPair',r.brakes);setBrakes('trailerRows',r.trailer);$('saveRecord').textContent='Update Service Record';showTab('entry');saveDraft();window.scrollTo({top:0,behavior:'smooth'});}
@@ -352,7 +358,7 @@ function viewSummary(id){
    <div style="font-size:11px;letter-spacing:1px;color:#cbd5e1;text-transform:uppercase">Workshop Service Summary</div>
    <div class="bus-number">BUS ${esc(r.bus)}</div>
    <div class="summary-meta">
-    <div><small>Date</small><strong>${esc(r.date)}</strong></div>
+    <div><small>Date</small><strong>${esc(formatAuDate(r.date))}</strong></div>
     <div><small>Kilometres</small><strong>${Number(r.kms).toLocaleString('en-AU')} KMS</strong></div>
     <div><small>Service Type</small><strong>${esc(r.service==='A'?(r.aService||'A'):r.service)}</strong></div>
    </div>
