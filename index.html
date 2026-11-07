@@ -72,6 +72,33 @@ td input{padding:9px} .fault-table th:first-child{width:43%}.fault-table th:nth-
  .brake-field .brake-entry select{width:38px;flex-basis:38px;font-size:10px}
  .brake-position-label{font-size:13px}
 }
+
+.summary-overlay{position:fixed;inset:0;background:#0f172acc;z-index:1000;display:none;overflow-y:auto;padding:18px}
+.summary-overlay.open{display:block}
+.summary-sheet{max-width:850px;margin:0 auto;background:#fff;border-radius:12px;padding:22px;box-shadow:0 12px 40px #0004}
+.summary-actions{display:flex;justify-content:flex-end;gap:8px;margin-bottom:16px}
+.summary-bus{background:#172b4d;color:#fff;border-radius:10px;padding:20px;margin-bottom:18px}
+.summary-bus .bus-number{font-size:34px;font-weight:800;line-height:1.1;margin:4px 0 12px}
+.summary-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.summary-meta small{display:block;color:#cbd5e1;font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+.summary-meta strong{font-size:16px}
+.summary-section{margin-top:18px}
+.summary-section h3{color:#172b4d;margin:0 0 9px;font-size:16px}
+.summary-brake-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.summary-brake{border:1px solid #dbe2ea;border-radius:8px;padding:10px}
+.summary-brake h4{margin:0 0 7px;color:#172b4d}
+.summary-measures{display:flex;gap:7px}
+.summary-measure{flex:1;background:#f3f5f8;border-radius:6px;padding:7px;font-size:12px}
+.summary-measure small{display:block;color:#64748b;font-size:10px}
+.summary-measure.level-green{background:#e8f5ec;color:#14532d}
+.summary-measure.level-yellow{background:#fff6d9;color:#854d0e}
+.summary-measure.level-red{background:#fee8e7;color:#991b1b}
+.summary-fault{border-bottom:1px solid #e2e8f0;padding:9px 0}
+.summary-fault:last-child{border-bottom:0}
+.summary-fault.done .summary-fault-title{text-decoration:line-through;color:#64748b}
+.summary-fault-title{font-weight:700}
+.summary-note{white-space:pre-wrap;color:#334155;margin-top:4px;font-size:13px}
+@media(max-width:600px){.summary-overlay{padding:8px}.summary-sheet{padding:13px;border-radius:9px}.summary-bus{padding:15px}.summary-bus .bus-number{font-size:29px}.summary-meta{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.summary-brake-grid{gap:6px}.summary-brake{padding:8px}.summary-measure{padding:6px 4px;font-size:11px}}
 </style>
 </head>
 <body>
@@ -137,6 +164,12 @@ td input{padding:9px} .fault-table th:first-child{width:43%}.fault-table th:nth-
       <div id="recordList"></div>
     </section>
   </main>
+</div>
+<div id="summaryOverlay" class="summary-overlay no-print" role="dialog" aria-modal="true" aria-label="Service record summary">
+  <div class="summary-sheet">
+    <div class="summary-actions"><button class="secondary" id="closeSummary">Close</button></div>
+    <div id="summaryContent"></div>
+  </div>
 </div>
 <script>
 const $=id=>document.getElementById(id);
@@ -237,50 +270,55 @@ function save(){const r=readForm();if(!validate(r))return;const idx=records.find
 function renderRecords(){
  const q=$('search').value.trim().toLowerCase();const list=records.filter(r=>(r.bus+' '+r.service+' '+r.date).toLowerCase().includes(q));$('recordList').innerHTML='';
  if(!list.length){$('recordList').innerHTML='<div class="empty">No saved service records found.</div>';return;}
- list.forEach(r=>{const card=document.createElement('div');card.className='record-card';const left=document.createElement('div');left.innerHTML=`<div class="record-title">Bus ${escapeHtml(r.bus)} · ${escapeHtml(r.service)} Service</div><div class="record-meta">${escapeHtml(r.date)} &nbsp;|&nbsp; ${Number(r.kms).toLocaleString('en-AU')} KMS &nbsp;|&nbsp; ${r.faults.length} fault(s)</div>`;const right=document.createElement('div');right.className='record-actions no-print';right.innerHTML='<button class="secondary small">View / Edit</button><button class="secondary small">Print</button><button class="danger small">Delete</button>';right.children[0].onclick=()=>editRecord(r.id);right.children[1].onclick=()=>printRecord(r.id);right.children[2].onclick=()=>deleteRecord(r.id);card.append(left,right);$('recordList').appendChild(card);});
+ list.forEach(r=>{const card=document.createElement('div');card.className='record-card';const left=document.createElement('div');left.innerHTML=`<div class="record-title">Bus ${escapeHtml(r.bus)} · ${escapeHtml(r.service)} Service</div><div class="record-meta">${escapeHtml(r.date)} &nbsp;|&nbsp; ${Number(r.kms).toLocaleString('en-AU')} KMS &nbsp;|&nbsp; ${r.faults.length} fault(s)</div>`;const right=document.createElement('div');right.className='record-actions no-print';right.innerHTML='<button class="secondary small">View / Edit</button><button class="secondary small">View Summary</button><button class="danger small">Delete</button>';right.children[0].onclick=()=>editRecord(r.id);right.children[1].onclick=()=>viewSummary(r.id);right.children[2].onclick=()=>deleteRecord(r.id);card.append(left,right);$('recordList').appendChild(card);});
 }
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function editRecord(id){const r=records.find(x=>x.id===id);if(!r)return;resetForm();editingId=id;$('bus').value=r.bus;$('date').value=r.date;$('kms').value=r.kms;$('service').value=r.service;$('notes').value=r.notes||'';$('faultRows').innerHTML='';(r.faults.length?r.faults:[{fault:'',done:false,note:''}]).forEach(x=>makeFaultRow(x.fault,x.done??false,x.note??x.repair??''));setBrakes('frontPair',r.brakes);setBrakes('rearPair',r.brakes);setBrakes('trailerRows',r.trailer);$('saveRecord').textContent='Update Service Record';showTab('entry');window.scrollTo({top:0,behavior:'smooth'});}
 function deleteRecord(id){if(!confirm('Delete this service record? This cannot be undone.'))return;records=records.filter(r=>r.id!==id);localStorage.setItem(STORAGE_KEY,JSON.stringify(records));renderRecords();}
-function printRecord(id){
+function viewSummary(id){
  const r=records.find(x=>x.id===id);if(!r)return;
- const rows=(items)=>items.map(x=>`<tr><td>${escapeHtml(x.position)}</td><td>${x.pad===''?'—':escapeHtml(x.pad+' '+x.unit)}</td><td>${x.rotor===''?'—':escapeHtml(x.rotor+' mm')}</td></tr>`).join('');
- const faults=r.faults.length?r.faults.map(x=>`<tr><td>${x.done?'☑ ': '☐ '}${escapeHtml(x.fault)}${x.done?' (Repaired)':''}</td><td>${escapeHtml(x.note??x.repair??'')}</td></tr>`).join(''):'<tr><td colspan="2">No faults recorded</td></tr>';
- const w=window.open('','_blank');if(!w){alert('Please allow pop-ups to print this report.');return;}
- w.document.write(`<!doctype html><html><head><title>Bus ${escapeHtml(r.bus)} Service Report</title><style>body{font:14px Arial;padding:28px;color:#222}h1{font-size:22px}h2{font-size:16px;margin-top:24px}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #bbb;padding:8px;text-align:left}th{background:#eee}.meta{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}.label{font-size:11px;color:#555;text-transform:uppercase}.value{font-weight:bold} 
-.brake-groups{display:flex;flex-direction:column;gap:12px}
-.brake-axle{border:1px solid var(--line);border-radius:8px;overflow:hidden}
-.axle-heading{background:#f0f4f8;padding:8px 11px;font-size:12px;font-weight:800;letter-spacing:.4px;color:#334155;display:flex;justify-content:space-between;align-items:center}
-.axle-heading span{font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted)}
-.brake-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0}
-.brake-position{padding:9px 10px;min-width:0}
-.brake-position+.brake-position{border-left:1px solid var(--line)}
-.brake-position-label{font-weight:800;font-size:14px;color:var(--navy);margin-bottom:7px}
-.brake-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px}
-.brake-field{min-width:0}
-.brake-field label{display:block;font-size:10px;color:var(--muted);font-weight:700;margin-bottom:3px;text-transform:uppercase}
-.brake-field .brake-entry{display:flex;gap:3px;justify-content:flex-start}
-.brake-field .brake-entry input{width:100%;min-width:0;padding:7px 4px;text-align:center;font-size:13px}
-.brake-field .brake-entry select{width:43px;flex:0 0 43px;min-width:0;padding:6px 1px;font-size:11px}
-.brake-value{transition:background-color .15s,border-color .15s}
-.brake-value.level-green{background:#e8f5ec;border-color:#79bd8d;color:#14532d}
-.brake-value.level-yellow{background:#fff6d9;border-color:#e6c34f;color:#854d0e}
-.brake-value.level-red{background:#fee8e7;border-color:#e49a96;color:#991b1b}
-.brake-legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin:0 0 12px;font-size:11px;color:var(--muted)}
-.brake-legend span{display:inline-flex;align-items:center;gap:5px}
-.legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
-.legend-green{background:#36a269}.legend-yellow{background:#e4b52c}.legend-red{background:#d9534f}
-@media(max-width:600px){
- .brake-position{padding:8px 6px}
- .brake-fields{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:5px}
- .brake-field label{font-size:9px;white-space:nowrap}
- .brake-field .brake-entry input{padding:7px 2px;font-size:12px}
- .brake-field .brake-entry select{width:38px;flex-basis:38px;font-size:10px}
- .brake-position-label{font-size:13px}
+ const esc=escapeHtml;
+ const padLevel=x=>{
+   if(x.pad==='')return '';
+   const v=Number(x.pad),min=x.unit==='%'?20:5,green=min*1.25;
+   return v<=min?'level-red':v<=green?'level-yellow':'level-green';
+ };
+ const rotorLevel=x=>{
+   if(x.rotor==='')return '';
+   const v=Number(x.rotor);
+   return v<=37?'level-red':v<=40?'level-yellow':'level-green';
+ };
+ const brakeCard=x=>`<div class="summary-brake"><h4>${esc(x.position)}</h4><div class="summary-measures">
+   <div class="summary-measure ${padLevel(x)}"><small>PAD</small><strong>${x.pad===''?'—':esc(x.pad+' '+x.unit)}</strong></div>
+   <div class="summary-measure ${rotorLevel(x)}"><small>ROTOR</small><strong>${x.rotor===''?'—':esc(x.rotor+' mm')}</strong></div>
+  </div></div>`;
+ const brakeSection=(title,items)=>items&&items.length?`<div class="summary-section"><h3>${title}</h3><div class="summary-brake-grid">${items.map(brakeCard).join('')}</div></div>`:'';
+ const faults=r.faults&&r.faults.length?r.faults.map(x=>`<div class="summary-fault ${x.done?'done':''}"><div class="summary-fault-title">${x.done?'☑':'☐'} ${esc(x.fault)}</div>${(x.note??x.repair??'')?`<div class="summary-note">${esc(x.note??x.repair)}</div>`:''}</div>`).join(''):'<div class="summary-note">No faults recorded.</div>';
+ $('summaryContent').innerHTML=`
+  <div class="summary-bus">
+   <div style="font-size:11px;letter-spacing:1px;color:#cbd5e1;text-transform:uppercase">Workshop Service Summary</div>
+   <div class="bus-number">BUS ${esc(r.bus)}</div>
+   <div class="summary-meta">
+    <div><small>Date</small><strong>${esc(r.date)}</strong></div>
+    <div><small>Kilometres</small><strong>${Number(r.kms).toLocaleString('en-AU')} KMS</strong></div>
+    <div><small>Service Type</small><strong>${esc(r.service)}</strong></div>
+   </div>
+  </div>
+  ${brakeSection('Brake Measurements',r.brakes)}
+  ${brakeSection('Trailer Measurements',r.trailer)}
+  <div class="summary-section"><h3>Faults &amp; Repair Notes</h3>${faults}</div>
+  ${r.notes?`<div class="summary-section"><h3>Additional Notes</h3><div class="summary-note">${esc(r.notes)}</div></div>`:''}
+ `;
+ $('summaryOverlay').classList.add('open');
+ document.body.style.overflow='hidden';
 }
-</style></head><body><h1>Workshop Bus Service Report</h1><div class="meta"><div><div class="label">Bus Number</div><div class="value">${escapeHtml(r.bus)}</div></div><div><div class="label">Date</div><div class="value">${escapeHtml(r.date)}</div></div><div><div class="label">KMS</div><div class="value">${Number(r.kms).toLocaleString('en-AU')}</div></div><div><div class="label">Service Type</div><div class="value">${escapeHtml(r.service)}</div></div></div><h2>Fault List &amp; Repair Notes</h2><table><tr><th>Fault / Status</th><th>Repair Note</th></tr>${faults}</table><h2>Brake Measurements</h2><table><tr><th>Position</th><th>Pad Measurement</th><th>Rotor</th></tr>${rows(r.brakes)}</table><h2>Trailer Measurements (Optional)</h2><table><tr><th>Position</th><th>Pad Measurement</th><th>Rotor</th></tr>${rows(r.trailer)}</table>${r.notes?`<h2>Additional Notes</h2><p>${escapeHtml(r.notes)}</p>`:''}<script>window.onload=()=>window.print()<\/script></body></html>`);
- w.document.close();
+function closeSummary(){
+ $('summaryOverlay').classList.remove('open');
+ document.body.style.overflow='';
 }
+$('closeSummary').onclick=closeSummary;
+$('summaryOverlay').addEventListener('click',e=>{if(e.target===$('summaryOverlay'))closeSummary();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSummary();});
 $('addFault').onclick=()=>makeFaultRow();$('saveRecord').onclick=save;$('clearForm').onclick=()=>{if(confirm('Clear the current form?'))resetForm();};
 $('entryTab').onclick=()=>showTab('entry');$('recordsTab').onclick=()=>showTab('records');$('newTop').onclick=()=>{resetForm();showTab('entry');window.scrollTo({top:0,behavior:'smooth'});};$('search').addEventListener('input',renderRecords);
 initForm();renderRecords();
