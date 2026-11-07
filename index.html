@@ -7,7 +7,395 @@
 <style>
 :root{--navy:#172b4d;--blue:#2457a7;--blue2:#eaf1fb;--ink:#1f2937;--muted:#64748b;--line:#dbe2ea;--bg:#f3f5f8;--white:#fff;--red:#b42318;--green:#167647;--amber:#946200}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Arial,Helvetica,sans-serif}
+header{background:var(--<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workshop Bus Fault Register</title>
+<style>
+:root{--navy:#172b4d;--blue:#2457a7;--blue2:#eaf1fb;--ink:#1f2937;--muted:#64748b;--line:#dbe2ea;--bg:#f3f5f8;--white:#fff;--red:#b42318;--green:#167647;--amber:#946200}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Arial,Helvetica,sans-serif}
 header{background:var(--navy);color:white;padding:22px 28px;display:flex;align-items:center;justify-content:space-between;gap:18px}
+header h1{margin:0;font-size:23px;letter-spacing:.2px}header p{margin:4px 0 0;color:#cbd5e1;font-size:13px}
+.wrap{max-width:1400px;margin:24px auto;padding:0 22px 40px}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+button{border:0;border-radius:7px;padding:10px 15px;font-weight:700;cursor:pointer;font-size:14px}
+.primary{background:var(--blue);color:#fff}.secondary{background:#e7edf5;color:var(--navy)}.danger{background:#fee4e2;color:var(--red)}.small{padding:7px 10px;font-size:12px}
+.tabs{display:flex;gap:8px;margin-bottom:18px}.tab{background:#e4e9f0;color:#334155}.tab.active{background:var(--blue);color:white}
+.panel{background:white;border:1px solid var(--line);border-radius:11px;padding:22px;margin-bottom:18px;box-shadow:0 2px 7px #172b4d0a}
+.panel h2{font-size:18px;margin:0 0 16px;color:var(--navy)}.panel h3{font-size:15px;margin:0 0 12px;color:var(--navy)}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:15px}
+.field{display:flex;flex-direction:column;gap:6px}.field label{font-size:12px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.35px}
+input,select,textarea{width:100%;border:1px solid #cbd5e1;border-radius:6px;padding:10px 11px;font:inherit;background:#fff;color:var(--ink);min-width:0}
+input:focus,select:focus,textarea:focus{outline:2px solid #9bb9e8;border-color:var(--blue)}
+.section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{width:100%;border-collapse:collapse;min-width:650px}th{background:#f0f4f8;text-align:left;color:#334155;font-size:12px;text-transform:uppercase;letter-spacing:.3px}
+th,td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle}tr:last-child td{border-bottom:0}
+td input{padding:9px} .fault-table th:first-child{width:43%}.fault-table th:nth-child(2){width:49%}.fault-table th:last-child{width:8%}
+.brake-table{min-width:0;width:100%;table-layout:fixed}.brake-table th,.brake-table td{text-align:center;padding:7px 5px}.brake-table td:first-child,.brake-table th:first-child{text-align:left;font-weight:700;width:66px}
+.brake-table th:nth-child(2){width:48%}.brake-table th:nth-child(3){width:30%}
+.brake-entry{display:flex;justify-content:center;gap:4px;align-items:center}.brake-entry input{width:62px;min-width:0;padding:7px 4px;text-align:center}.brake-entry select{width:48px;min-width:0;padding:7px 2px;font-size:12px}
+.fault-list{display:flex;flex-direction:column;gap:9px}.fault-item{border:1px solid var(--line);border-radius:8px;padding:11px;background:#fff}.fault-main{display:flex;align-items:center;gap:10px}.fault-main input[type=checkbox]{width:22px;height:22px;flex:0 0 22px;accent-color:var(--green)}.fault-text{flex:1;min-width:0;border:0;border-bottom:1px solid #dbe2ea;border-radius:0;padding:8px 2px}.fault-text:focus{outline:0;border-bottom:2px solid var(--blue)}.fault-item.done .fault-text{text-decoration:line-through;color:#7b8794}.fault-item.done{background:#f7faf8}.fault-extra{margin:7px 0 0 32px}.fault-extra summary{font-size:12px;color:var(--blue);font-weight:700;cursor:pointer;user-select:none}.fault-extra textarea{margin-top:7px;min-height:64px;font-size:14px}
+.hint{font-size:12px;color:var(--muted);margin:9px 0 0}.required{color:var(--red)}.optional{font-size:11px;color:var(--muted);font-weight:400}
+.actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:18px}
+.status{font-size:12px;color:var(--muted);margin-right:auto;align-self:center}
+.records-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}.records-head input{max-width:330px}
+.record-card{border:1px solid var(--line);border-radius:8px;padding:14px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:15px;background:#fff}
+.record-title{font-weight:700;color:var(--navy)}.record-meta{font-size:12px;color:var(--muted);margin-top:4px}.record-actions{display:flex;gap:7px;flex-wrap:wrap}
+.empty{padding:30px;text-align:center;color:var(--muted);border:1px dashed #cbd5e1;border-radius:8px;margin-top:12px}
+.draft-status{font-size:12px;color:var(--green);font-weight:700;margin-top:8px;min-height:16px}
+.notice{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;padding:11px 13px;border-radius:7px;font-size:13px;margin-bottom:15px}
+.hidden{display:none!important}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(130px,1fr))}}
+@media(max-width:600px){header{padding:15px;align-items:flex-start;flex-direction:row}header h1{font-size:18px}header p{font-size:11px}header .secondary{padding:9px;font-size:12px}.wrap{padding:0 9px 24px;margin:10px auto}.panel{padding:12px;margin-bottom:12px;border-radius:9px}.panel h2{font-size:16px;margin-bottom:12px}.grid{grid-template-columns:1fr 1fr;gap:10px}.field label{font-size:10px}.field input,.field select{padding:9px 7px;font-size:14px}.record-card{align-items:flex-start;flex-direction:column}.actions button{flex:1}.tabs{width:100%;margin-bottom:12px}.tab{flex:1;padding:10px 6px;font-size:12px}.brake-table th,.brake-table td{padding:6px 3px;font-size:12px}.brake-table td:first-child,.brake-table th:first-child{width:48px}.brake-table th:nth-child(2){width:56%}.brake-table th:nth-child(3){width:25%}.brake-entry{gap:3px}.brake-entry input{width:48px;padding:7px 2px;font-size:13px}.brake-entry select{width:42px;padding:7px 0;font-size:11px}.brake-table input{font-size:13px}.fault-item{padding:9px}.fault-extra{margin-left:31px}.section-head{align-items:center}.section-head button{padding:8px 10px;font-size:12px}}
+@media print{body{background:#fff}.no-print,header,.tabs,#recordsView{display:none!important}.wrap{max-width:none;margin:0;padding:0}.panel{box-shadow:none;border:0;padding:8px 0;break-inside:avoid}.print-title{display:block!important}input,select,textarea{border:0;padding:2px 0;appearance:none}.table-wrap{overflow:visible}table{min-width:0}th,td{padding:6px}.actions{display:none!important}}
+ 
+.brake-groups{display:flex;flex-direction:column;gap:12px}
+.brake-axle{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.axle-heading{background:#f0f4f8;padding:8px 11px;font-size:12px;font-weight:800;letter-spacing:.4px;color:#334155;display:flex;justify-content:space-between;align-items:center}
+.axle-heading span{font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted)}
+.brake-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0}
+.brake-position{padding:9px 10px;min-width:0}
+.brake-position+.brake-position{border-left:1px solid var(--line)}
+.brake-position-label{font-weight:800;font-size:14px;color:var(--navy);margin-bottom:7px}
+.brake-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px}
+.brake-field{min-width:0}
+.brake-field label{display:block;font-size:10px;color:var(--muted);font-weight:700;margin-bottom:3px;text-transform:uppercase}
+.brake-field .brake-entry{display:flex;gap:3px;justify-content:flex-start}
+.brake-field .brake-entry input{width:100%;min-width:0;padding:7px 4px;text-align:center;font-size:13px}
+.brake-field .brake-entry select{width:43px;flex:0 0 43px;min-width:0;padding:6px 1px;font-size:11px}
+.rotor-na-toggle{display:flex;align-items:center;gap:4px;margin-top:5px;font-size:10px;color:var(--muted);text-transform:none!important;white-space:normal!important}
+.rotor-na-toggle input{width:14px;height:14px;flex:0 0 14px;margin:0;accent-color:var(--blue)}
+.brake-value{transition:background-color .15s,border-color .15s}
+.brake-value.level-green{background:#e8f5ec;border-color:#79bd8d;color:#14532d}
+.brake-value.level-yellow{background:#fff6d9;border-color:#e6c34f;color:#854d0e}
+.brake-value.level-red{background:#fee8e7;border-color:#e49a96;color:#991b1b}
+.brake-legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin:0 0 12px;font-size:11px;color:var(--muted)}
+.brake-legend span{display:inline-flex;align-items:center;gap:5px}
+.legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.legend-green{background:#36a269}.legend-yellow{background:#e4b52c}.legend-red{background:#d9534f}
+@media(max-width:600px){
+ .brake-position{padding:8px 6px}
+ .brake-fields{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:5px}
+ .brake-field label{font-size:9px;white-space:nowrap}
+ .brake-field .brake-entry input{padding:7px 2px;font-size:12px}
+ .brake-field .brake-entry select{width:38px;flex-basis:38px;font-size:10px}
+ .brake-position-label{font-size:13px}
+}
+
+.summary-overlay{position:fixed;inset:0;background:#0f172acc;z-index:1000;display:none;overflow-y:auto;padding:18px}
+.summary-overlay.open{display:block}
+.summary-sheet{max-width:850px;margin:0 auto;background:#fff;border-radius:12px;padding:22px;box-shadow:0 12px 40px #0004}
+.summary-actions{display:flex;justify-content:flex-end;gap:8px;margin-bottom:16px}
+.summary-bus{background:#172b4d;color:#fff;border-radius:10px;padding:20px;margin-bottom:18px}
+.summary-bus .bus-number{font-size:34px;font-weight:800;line-height:1.1;margin:4px 0 12px}
+.summary-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.summary-meta small{display:block;color:#cbd5e1;font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+.summary-meta strong{font-size:16px}
+.summary-section{margin-top:18px}
+.summary-section h3{color:#172b4d;margin:0 0 9px;font-size:16px}
+.summary-brake-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.summary-brake{border:1px solid #dbe2ea;border-radius:8px;padding:10px}
+.summary-brake h4{margin:0 0 7px;color:#172b4d}
+.summary-measures{display:flex;gap:7px}
+.summary-measure{flex:1;background:#f3f5f8;border-radius:6px;padding:7px;font-size:12px}
+.summary-measure small{display:block;color:#64748b;font-size:10px}
+.summary-measure.level-green{background:#e8f5ec;color:#14532d}
+.summary-measure.level-yellow{background:#fff6d9;color:#854d0e}
+.summary-measure.level-red{background:#fee8e7;color:#991b1b}
+.summary-fault{border-bottom:1px solid #e2e8f0;padding:9px 0}
+.summary-fault:last-child{border-bottom:0}
+.summary-fault.done .summary-fault-title{text-decoration:line-through;color:#64748b}
+.summary-fault-title{font-weight:700}
+.summary-note{white-space:pre-wrap;color:#334155;margin-top:4px;font-size:13px}
+@media(max-width:600px){.summary-overlay{padding:8px}.summary-sheet{padding:13px;border-radius:9px}.summary-bus{padding:15px}.summary-bus .bus-number{font-size:29px}.summary-meta{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.summary-brake-grid{gap:6px}.summary-brake{padding:8px}.summary-measure{padding:6px 4px;font-size:11px}}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Workshop Bus Fault Register</h1><p>Service records, fault repairs and brake measurements</p></div>
+  <div class="no-print"><button class="secondary" id="newTop">＋ New Service Record</button></div>
+</header>
+<div class="wrap">
+  <div class="tabs no-print">
+    <button class="tab active" id="entryTab">New Service Record</button>
+    <button class="tab" id="recordsTab">Saved Records</button>
+  </div>
+
+  <main id="entryView">
+    <section class="panel">
+      <h2>1. Bus &amp; Service Details</h2>
+      <div class="grid">
+        <div class="field"><label for="bus">Bus Number <span class="required">*</span></label><input id="bus" placeholder="e.g. 1234" required></div>
+        <div class="field"><label for="date">Date <span class="required">*</span></label><input id="date" type="date" required></div>
+        <div class="field"><label for="kms">KMS <span class="required">*</span></label><input id="kms" type="number" min="0" step="1" placeholder="Odometer reading" required></div>
+        <div class="field"><label for="service">Service Type <span class="required">*</span></label><select id="service" required><option value="">Select service</option><option>A</option><option>B3</option><option>B6</option><option>B9</option><option>C</option></select></div>
+        <div class="field hidden" id="aServiceWrap"><label for="aService">A Service Type <span class="required">*</span></label><select id="aService"><option value="">Select A service</option><option>A1</option><option>A2</option><option>A4</option><option>A5</option><option>A7</option><option>A8</option><option>A10</option><option>A11</option></select></div>
+      </div>
+      <div id="draftStatus" class="draft-status" aria-live="polite">Your work is saved automatically on this device.</div>
+    </section>
+
+    <section class="panel">
+      <h2>2. Brake Measurements</h2>
+      <div class="brake-legend">
+        <span><i class="legend-dot legend-green"></i> Good</span>
+        <span><i class="legend-dot legend-yellow"></i> Approaching minimum</span>
+        <span><i class="legend-dot legend-red"></i> At / below minimum</span>
+      </div>
+      <div class="brake-groups">
+        <div class="brake-axle">
+          <div class="axle-heading">FRONT <span>Required</span></div>
+          <div class="brake-pair" id="frontPair"></div>
+        </div>
+        <div class="brake-axle">
+          <div class="axle-heading">REAR <span>Required</span></div>
+          <div class="brake-pair" id="rearPair"></div>
+        </div>
+        <div class="brake-axle trailer-axle">
+          <div class="axle-heading">TRAILER <span>Optional – if fitted / required</span></div>
+          <div class="brake-pair" id="trailerRows"></div>
+        </div>
+      </div>
+      <p class="hint">Pads can be recorded as remaining percentage (%) or thickness (mm). Select the unit for each position. Rotor measurements are always in mm.</p>
+    </section>
+    <section class="panel">
+      <div class="section-head"><h2 style="margin:0">3. Faults &amp; Repairs</h2><button class="secondary no-print" id="addFault">＋ Add Fault</button></div>
+      <div id="faultRows" class="fault-list"></div>
+      <p class="hint">Tick a fault when it has been repaired. Open “Repair note” to record what was done. Completed faults are crossed out.</p>
+    </section>
+
+    <section class="panel">
+      <div class="field"><label for="notes">Additional Notes <span class="optional">(Optional)</span></label><textarea id="notes" rows="3" placeholder="Any other service notes..."></textarea></div>
+      <div class="actions no-print"><span class="status" id="formStatus">* Required fields must be completed.</span><button class="secondary" id="clearForm">Clear Form</button><button class="primary" id="saveRecord">Save Service Record</button></div>
+    </section>
+  </main>
+
+  <main id="recordsView" class="hidden">
+    <section class="panel">
+      <div class="records-head"><h2 style="margin:0">Saved Service Records</h2><input id="search" placeholder="Search bus number or service type..."></div>
+      <div id="recordList"></div>
+    </section>
+  </main>
+</div>
+<div id="summaryOverlay" class="summary-overlay no-print" role="dialog" aria-modal="true" aria-label="Service record summary">
+  <div class="summary-sheet">
+    <div class="summary-actions"><button class="secondary" id="closeSummary">Close</button></div>
+    <div id="summaryContent"></div>
+  </div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const STORAGE_KEY='workshopBusFaultRegister_v1';
+const DRAFT_KEY='workshopBusFaultRegister_draft_v1';
+let records=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
+let editingId=null;
+const positions=['NSF','OSF','NSR','OSR'];
+const trailerPositions=['NST','OST'];
+function makeFaultRow(fault='',done=false,note=''){
+ const item=document.createElement('div');
+ item.className='fault-item'+(done?' done':'');
+ item.innerHTML=`<div class="fault-main">
+   <input class="fault-done" type="checkbox" aria-label="Mark fault as repaired">
+   <input class="fault-text" type="text" enterkeyhint="enter" aria-label="Fault description" placeholder="Enter fault description">
+   <button type="button" class="danger small remove-row" title="Remove fault">✕</button>
+ </div>
+ <details class="fault-extra"><summary>＋ Repair note</summary><textarea class="repair-note" placeholder="Describe the repair carried out..."></textarea></details>`;
+ item.querySelector('.fault-text').value=fault;
+ item.querySelector('.fault-done').checked=!!done;
+ item.querySelector('.repair-note').value=note||'';
+ item.querySelector('.fault-done').addEventListener('change',e=>item.classList.toggle('done',e.target.checked));
+ item.querySelector('.remove-row').addEventListener('click',()=>item.remove());
+ const faultInput=item.querySelector('.fault-text');
+ const addNextFault=e=>{
+   const isEnter=e.key==='Enter'||e.keyCode===13||e.which===13;
+   if(isEnter){
+     e.preventDefault();
+     e.stopPropagation();
+     if(e.type==='keydown'){
+       makeFaultRow();
+       const rows=$('faultRows').querySelectorAll('.fault-item');
+       rows[rows.length-1].querySelector('.fault-text').focus();
+     }
+   }
+ };
+ faultInput.addEventListener('keydown',addNextFault);
+ faultInput.addEventListener('keypress',e=>{
+   if(e.key==='Enter'||e.keyCode===13||e.which===13)e.preventDefault();
+ });
+ $('faultRows').appendChild(item);
+}
+function makeBrakeRow(pos,optional=false,targetId){
+ const card=document.createElement('div');card.className='brake-position';card.dataset.position=pos;
+ card.innerHTML=`<div class="brake-position-label">${pos}</div>
+ <div class="brake-fields">
+  <div class="brake-field"><label>Pad ${optional?'':'*'}</label><div class="brake-entry"><input class="pad-value brake-value" type="number" min="0" step="any" placeholder="—" ${optional?'':'required'}><select class="pad-unit" aria-label="${pos} pad unit"><option value="%">%</option><option value="mm">mm</option></select></div></div>
+  <div class="brake-field"><label>Rotor mm ${optional?'':'*'}</label><div class="brake-entry"><input class="rotor-value brake-value" type="number" min="0" step="any" placeholder="—" ${optional?'':'required'}></div>${optional?'':`<label class="rotor-na-toggle"><input class="rotor-na" type="checkbox"> Backing plate</label>`}</div>
+ </div>`;
+ card.querySelector('.pad-value').setAttribute('aria-label',pos+' pad measurement');
+ card.querySelector('.rotor-value').setAttribute('aria-label',pos+' rotor measurement in mm');
+ const padInput=card.querySelector('.pad-value');
+ const padUnit=card.querySelector('.pad-unit');
+ const rotorInput=card.querySelector('.rotor-value');
+ const rotorNA=card.querySelector('.rotor-na');
+ if(rotorNA){
+   rotorNA.addEventListener('change',()=>{
+     rotorInput.disabled=rotorNA.checked;
+     if(rotorNA.checked)rotorInput.value='';
+     refresh();
+   });
+ }
+ const refresh=()=>{
+   colourBrakeValue(padInput,padUnit.value==='%'?20:5);
+   colourBrakeValue(rotorInput,37,40);
+ };
+ padInput.addEventListener('input',refresh);
+ padUnit.addEventListener('change',refresh);
+ rotorInput.addEventListener('input',refresh);
+ card._refreshBrakeColours=refresh;
+ $(targetId).appendChild(card);
+}
+function colourBrakeValue(input,minimum,greenAbove=minimum*1.25){
+ input.classList.remove('level-green','level-yellow','level-red');
+ if(input.value==='')return;
+ const value=Number(input.value);
+ if(!Number.isFinite(value))return;
+ if(value<=minimum)input.classList.add('level-red');
+ else if(value<=greenAbove)input.classList.add('level-yellow');
+ else input.classList.add('level-green');
+}
+function updateAServiceVisibility(){
+ const isA=$('service').value==='A';
+ $('aServiceWrap').classList.toggle('hidden',!isA);
+ if(!isA)$('aService').value='';
+}
+function initForm(){
+ $('faultRows').innerHTML='';$('frontPair').innerHTML='';$('rearPair').innerHTML='';$('trailerRows').innerHTML='';
+ makeFaultRow();
+ makeBrakeRow('NSF',false,'frontPair');makeBrakeRow('OSF',false,'frontPair');
+ makeBrakeRow('NSR',false,'rearPair');makeBrakeRow('OSR',false,'rearPair');
+ makeBrakeRow('NST',true,'trailerRows');makeBrakeRow('OST',true,'trailerRows');
+ $('date').value=new Date().toISOString().slice(0,10);
+ $('service').value='';$('aService').value='';updateAServiceVisibility();
+}
+function readBrakes(id){
+ return [...$(id).querySelectorAll('.brake-position')].map(card=>({position:card.dataset.position,pad:card.querySelector('.pad-value').value,unit:card.querySelector('.pad-unit').value,rotor:card.querySelector('.rotor-value').value,rotorNA:!!card.querySelector('.rotor-na')?.checked}));
+}
+function setBrakes(id,data){
+ const map=Object.fromEntries((data||[]).map(x=>[x.position,x]));
+ [...$(id).querySelectorAll('.brake-position')].forEach(card=>{const x=map[card.dataset.position];if(x){card.querySelector('.pad-value').value=x.pad??'';card.querySelector('.pad-unit').value=x.unit||'%';card.querySelector('.rotor-value').value=x.rotor??'';const na=card.querySelector('.rotor-na');if(na){na.checked=!!x.rotorNA;card.querySelector('.rotor-value').disabled=!!x.rotorNA;}}card._refreshBrakeColours?.();});
+}
+function readForm(){return {id:editingId||String(Date.now()),bus:$('bus').value.trim(),date:$('date').value,kms:$('kms').value,service:$('service').value,aService:$('aService').value,faults:[...$('faultRows').querySelectorAll('.fault-item')].map(item=>({fault:item.querySelector('.fault-text').value.trim(),done:item.querySelector('.fault-done').checked,note:item.querySelector('.repair-note').value.trim()})).filter(x=>x.fault||x.note),brakes:[...readBrakes('frontPair'),...readBrakes('rearPair')],trailer:readBrakes('trailerRows'),notes:$('notes').value.trim(),updated:new Date().toISOString()};}
+function validate(r){
+ if(!r.bus||!r.date||r.kms===''||!r.service){alert('Please complete Bus Number, Date, KMS and Service Type.');return false;}
+ if(r.service==='A'&&!r.aService){alert('Please select the A service type (A1, A2, A4, A5, A7, A8, A10 or A11).');return false;}
+ if(r.brakes.some(x=>x.pad===''||(x.rotor===''&&!x.rotorNA))){alert('All four front and rear pad measurements are required. Enter a rotor measurement or select Backing plate where no rotor measurement is possible.');return false;}
+ if(r.brakes.some(x=>Number(x.pad)<0||(x.rotor!==''&&Number(x.rotor)<0))||r.trailer.some(x=>(x.pad!==''&&Number(x.pad)<0)||(x.rotor!==''&&Number(x.rotor)<0))){alert('Measurements cannot be negative.');return false;}
+ return true;
+}
+function applyDraft(r){
+ if(!r)return;
+ editingId=r.editingId||null;
+ $('bus').value=r.bus||'';$('date').value=r.date||new Date().toISOString().slice(0,10);
+ $('kms').value=r.kms??'';$('service').value=r.service||'';
+ $('aService').value=r.aService||'';updateAServiceVisibility();
+ $('notes').value=r.notes||'';
+ $('faultRows').innerHTML='';
+ (r.faults&&r.faults.length?r.faults:[{fault:'',done:false,note:''}]).forEach(x=>makeFaultRow(x.fault||'',!!x.done,x.note||''));
+ setBrakes('frontPair',r.brakes||[]);setBrakes('rearPair',r.brakes||[]);setBrakes('trailerRows',r.trailer||[]);
+ $('saveRecord').textContent=editingId?'Update Service Record':'Save Service Record';
+}
+function saveDraft(){
+ const draft=readForm();
+ draft.editingId=editingId;
+ const hasContent=!!(draft.bus||draft.kms||draft.service||draft.aService||draft.notes||
+   draft.faults.length||draft.brakes.some(x=>x.pad||x.rotor||x.rotorNA)||draft.trailer.some(x=>x.pad||x.rotor));
+ try{
+   if(hasContent){localStorage.setItem(DRAFT_KEY,JSON.stringify(draft));$('draftStatus').textContent='Draft saved automatically on this device.';}
+   else{localStorage.removeItem(DRAFT_KEY);$('draftStatus').textContent='Your work is saved automatically on this device.';}
+ }catch(e){$('draftStatus').textContent='Could not save draft. Check available browser storage.';}
+}
+function restoreDraft(){
+ try{
+   const raw=localStorage.getItem(DRAFT_KEY);
+   if(!raw)return;
+   const draft=JSON.parse(raw);
+   if(!draft)return;
+   applyDraft(draft);
+   $('draftStatus').textContent='Recovered unsaved draft. Your entries have been restored.';
+ }catch(e){$('draftStatus').textContent='A previous draft could not be restored.';}
+}
+function resetForm(){localStorage.removeItem(DRAFT_KEY);editingId=null;initForm();$('bus').value='';$('kms').value='';$('service').value='';$('aService').value='';updateAServiceVisibility();$('notes').value='';$('saveRecord').textContent='Save Service Record';$('formStatus').textContent='* Required fields must be completed.';}
+function showTab(which){const entry=which==='entry';$('entryView').classList.toggle('hidden',!entry);$('recordsView').classList.toggle('hidden',entry);$('entryTab').classList.toggle('active',entry);$('recordsTab').classList.toggle('active',!entry);if(!entry)renderRecords();}
+function save(){const r=readForm();if(!validate(r))return;const idx=records.findIndex(x=>x.id===r.id);if(idx>=0)records[idx]=r;else records.unshift(r);localStorage.setItem(STORAGE_KEY,JSON.stringify(records));$('formStatus').textContent='Record saved.';resetForm();showTab('records');}
+function renderRecords(){
+ const q=$('search').value.trim().toLowerCase();const list=records.filter(r=>(r.bus+' '+r.service+' '+r.date).toLowerCase().includes(q));$('recordList').innerHTML='';
+ if(!list.length){$('recordList').innerHTML='<div class="empty">No saved service records found.</div>';return;}
+ list.forEach(r=>{const card=document.createElement('div');card.className='record-card';const left=document.createElement('div');left.innerHTML=`<div class="record-title">Bus ${escapeHtml(r.bus)} · ${escapeHtml(r.service)} Service</div><div class="record-meta">${escapeHtml(r.date)} &nbsp;|&nbsp; ${Number(r.kms).toLocaleString('en-AU')} KMS &nbsp;|&nbsp; ${r.faults.length} fault(s)</div>`;const right=document.createElement('div');right.className='record-actions no-print';right.innerHTML='<button class="secondary small">View / Edit</button><button class="secondary small">View Summary</button><button class="danger small">Delete</button>';right.children[0].onclick=()=>editRecord(r.id);right.children[1].onclick=()=>viewSummary(r.id);right.children[2].onclick=()=>deleteRecord(r.id);card.append(left,right);$('recordList').appendChild(card);});
+}
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function editRecord(id){const r=records.find(x=>x.id===id);if(!r)return;resetForm();editingId=id;$('bus').value=r.bus;$('date').value=r.date;$('kms').value=r.kms;$('service').value=r.service;$('aService').value=r.aService||'';updateAServiceVisibility();$('notes').value=r.notes||'';$('faultRows').innerHTML='';(r.faults.length?r.faults:[{fault:'',done:false,note:''}]).forEach(x=>makeFaultRow(x.fault,x.done??false,x.note??x.repair??''));setBrakes('frontPair',r.brakes);setBrakes('rearPair',r.brakes);setBrakes('trailerRows',r.trailer);$('saveRecord').textContent='Update Service Record';showTab('entry');saveDraft();window.scrollTo({top:0,behavior:'smooth'});}
+function deleteRecord(id){if(!confirm('Delete this service record? This cannot be undone.'))return;records=records.filter(r=>r.id!==id);localStorage.setItem(STORAGE_KEY,JSON.stringify(records));renderRecords();}
+function viewSummary(id){
+ const r=records.find(x=>x.id===id);if(!r)return;
+ const esc=escapeHtml;
+ const padLevel=x=>{
+   if(x.pad==='')return '';
+   const v=Number(x.pad),min=x.unit==='%'?20:5,green=min*1.25;
+   return v<=min?'level-red':v<=green?'level-yellow':'level-green';
+ };
+ const rotorLevel=x=>{
+   if(x.rotor==='')return '';
+   const v=Number(x.rotor);
+   return v<=37?'level-red':v<=40?'level-yellow':'level-green';
+ };
+ const brakeCard=x=>`<div class="summary-brake"><h4>${esc(x.position)}</h4><div class="summary-measures">
+   <div class="summary-measure ${padLevel(x)}"><small>PAD</small><strong>${x.pad===''?'—':esc(x.pad+' '+x.unit)}</strong></div>
+   <div class="summary-measure ${rotorLevel(x)}"><small>ROTOR</small><strong>${x.rotorNA?'Backing plate':(x.rotor===''?'—':esc(x.rotor+' mm'))}</strong></div>
+  </div></div>`;
+ const brakeSection=(title,items)=>{const shown=(items||[]).filter(x=>x.pad!==''||x.rotor!==''||x.rotorNA);return shown.length?`<div class="summary-section"><h3>${title}</h3><div class="summary-brake-grid">${shown.map(brakeCard).join('')}</div></div>`:'';};
+ const faults=r.faults&&r.faults.length?r.faults.map(x=>`<div class="summary-fault ${x.done?'done':''}"><div class="summary-fault-title">${x.done?'☑':'☐'} ${esc(x.fault)}</div>${(x.note??x.repair??'')?`<div class="summary-note">${esc(x.note??x.repair)}</div>`:''}</div>`).join(''):'<div class="summary-note">No faults recorded.</div>';
+ $('summaryContent').innerHTML=`
+  <div class="summary-bus">
+   <div style="font-size:11px;letter-spacing:1px;color:#cbd5e1;text-transform:uppercase">Workshop Service Summary</div>
+   <div class="bus-number">BUS ${esc(r.bus)}</div>
+   <div class="summary-meta">
+    <div><small>Date</small><strong>${esc(r.date)}</strong></div>
+    <div><small>Kilometres</small><strong>${Number(r.kms).toLocaleString('en-AU')} KMS</strong></div>
+    <div><small>Service Type</small><strong>${esc(r.service==='A'?(r.aService||'A'):r.service)}</strong></div>
+   </div>
+  </div>
+  ${brakeSection('Brake Measurements',r.brakes)}
+  ${brakeSection('Trailer Measurements',r.trailer)}
+  <div class="summary-section"><h3>Faults &amp; Repair Notes</h3>${faults}</div>
+  ${r.notes?`<div class="summary-section"><h3>Additional Notes</h3><div class="summary-note">${esc(r.notes)}</div></div>`:''}
+ `;
+ $('summaryOverlay').classList.add('open');
+ document.body.style.overflow='hidden';
+}
+function closeSummary(){
+ $('summaryOverlay').classList.remove('open');
+ document.body.style.overflow='';
+}
+$('closeSummary').onclick=closeSummary;
+$('summaryOverlay').addEventListener('click',e=>{if(e.target===$('summaryOverlay'))closeSummary();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSummary();});
+$('service').addEventListener('change',updateAServiceVisibility);
+$('addFault').onclick=()=>makeFaultRow();$('saveRecord').onclick=save;$('clearForm').onclick=()=>{if(confirm('Clear the current form?'))resetForm();};
+$('entryTab').onclick=()=>showTab('entry');$('recordsTab').onclick=()=>showTab('records');$('newTop').onclick=()=>{resetForm();showTab('entry');window.scrollTo({top:0,behavior:'smooth'});};$('search').addEventListener('input',renderRecords);
+initForm();
+restoreDraft();
+const formRoot=$('entryView');
+formRoot.addEventListener('input',e=>{if(e.target.matches('input,select,textarea'))saveDraft();});
+formRoot.addEventListener('change',e=>{if(e.target.matches('input,select,textarea'))saveDraft();});
+$('addFault').addEventListener('click',()=>saveDraft());
+window.addEventListener('pagehide',saveDraft);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveDraft();});
+renderRecords();
+</script>
+</body>
+</html>);color:white;padding:22px 28px;display:flex;align-items:center;justify-content:space-between;gap:18px}
 header h1{margin:0;font-size:23px;letter-spacing:.2px}header p{margin:4px 0 0;color:#cbd5e1;font-size:13px}
 .wrap{max-width:1400px;margin:24px auto;padding:0 22px 40px}
 .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
