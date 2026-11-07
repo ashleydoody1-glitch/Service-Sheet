@@ -56,6 +56,8 @@ td input{padding:9px} .fault-table th:first-child{width:43%}.fault-table th:nth-
 .brake-field .brake-entry{display:flex;gap:3px;justify-content:flex-start}
 .brake-field .brake-entry input{width:100%;min-width:0;padding:7px 4px;text-align:center;font-size:13px}
 .brake-field .brake-entry select{width:43px;flex:0 0 43px;min-width:0;padding:6px 1px;font-size:11px}
+.rotor-na-toggle{display:flex;align-items:center;gap:4px;margin-top:5px;font-size:10px;color:var(--muted);text-transform:none!important;white-space:normal!important}
+.rotor-na-toggle input{width:14px;height:14px;flex:0 0 14px;margin:0;accent-color:var(--blue)}
 .brake-value{transition:background-color .15s,border-color .15s}
 .brake-value.level-green{background:#e8f5ec;border-color:#79bd8d;color:#14532d}
 .brake-value.level-yellow{background:#fff6d9;border-color:#e6c34f;color:#854d0e}
@@ -216,13 +218,21 @@ function makeBrakeRow(pos,optional=false,targetId){
  card.innerHTML=`<div class="brake-position-label">${pos}</div>
  <div class="brake-fields">
   <div class="brake-field"><label>Pad ${optional?'':'*'}</label><div class="brake-entry"><input class="pad-value brake-value" type="number" min="0" step="any" placeholder="—" ${optional?'':'required'}><select class="pad-unit" aria-label="${pos} pad unit"><option value="%">%</option><option value="mm">mm</option></select></div></div>
-  <div class="brake-field"><label>Rotor mm ${optional?'':'*'}</label><div class="brake-entry"><input class="rotor-value brake-value" type="number" min="0" step="any" placeholder="—" ${optional?'':'required'}></div></div>
+  <div class="brake-field"><label>Rotor mm ${optional?'':'*'}</label><div class="brake-entry"><input class="rotor-value brake-value" type="number" min="0" step="any" placeholder="—" ${optional?'':'required'}></div>${optional?'':`<label class="rotor-na-toggle"><input class="rotor-na" type="checkbox"> Backing plate</label>`}</div>
  </div>`;
  card.querySelector('.pad-value').setAttribute('aria-label',pos+' pad measurement');
  card.querySelector('.rotor-value').setAttribute('aria-label',pos+' rotor measurement in mm');
  const padInput=card.querySelector('.pad-value');
  const padUnit=card.querySelector('.pad-unit');
  const rotorInput=card.querySelector('.rotor-value');
+ const rotorNA=card.querySelector('.rotor-na');
+ if(rotorNA){
+   rotorNA.addEventListener('change',()=>{
+     rotorInput.disabled=rotorNA.checked;
+     if(rotorNA.checked)rotorInput.value='';
+     refresh();
+   });
+ }
  const refresh=()=>{
    colourBrakeValue(padInput,padUnit.value==='%'?20:5);
    colourBrakeValue(rotorInput,37,40);
@@ -251,17 +261,17 @@ function initForm(){
  $('date').value=new Date().toISOString().slice(0,10);
 }
 function readBrakes(id){
- return [...$(id).querySelectorAll('.brake-position')].map(card=>({position:card.dataset.position,pad:card.querySelector('.pad-value').value,unit:card.querySelector('.pad-unit').value,rotor:card.querySelector('.rotor-value').value}));
+ return [...$(id).querySelectorAll('.brake-position')].map(card=>({position:card.dataset.position,pad:card.querySelector('.pad-value').value,unit:card.querySelector('.pad-unit').value,rotor:card.querySelector('.rotor-value').value,rotorNA:!!card.querySelector('.rotor-na')?.checked}));
 }
 function setBrakes(id,data){
  const map=Object.fromEntries((data||[]).map(x=>[x.position,x]));
- [...$(id).querySelectorAll('.brake-position')].forEach(card=>{const x=map[card.dataset.position];if(x){card.querySelector('.pad-value').value=x.pad??'';card.querySelector('.pad-unit').value=x.unit||'%';card.querySelector('.rotor-value').value=x.rotor??'';}card._refreshBrakeColours?.();});
+ [...$(id).querySelectorAll('.brake-position')].forEach(card=>{const x=map[card.dataset.position];if(x){card.querySelector('.pad-value').value=x.pad??'';card.querySelector('.pad-unit').value=x.unit||'%';card.querySelector('.rotor-value').value=x.rotor??'';const na=card.querySelector('.rotor-na');if(na){na.checked=!!x.rotorNA;card.querySelector('.rotor-value').disabled=!!x.rotorNA;}}card._refreshBrakeColours?.();});
 }
 function readForm(){return {id:editingId||String(Date.now()),bus:$('bus').value.trim(),date:$('date').value,kms:$('kms').value,service:$('service').value,faults:[...$('faultRows').querySelectorAll('.fault-item')].map(item=>({fault:item.querySelector('.fault-text').value.trim(),done:item.querySelector('.fault-done').checked,note:item.querySelector('.repair-note').value.trim()})).filter(x=>x.fault||x.note),brakes:[...readBrakes('frontPair'),...readBrakes('rearPair')],trailer:readBrakes('trailerRows'),notes:$('notes').value.trim(),updated:new Date().toISOString()};}
 function validate(r){
  if(!r.bus||!r.date||r.kms===''||!r.service){alert('Please complete Bus Number, Date, KMS and Service Type.');return false;}
- if(r.brakes.some(x=>x.pad===''||x.rotor==='')){alert('All four front and rear pad and rotor measurements are required.');return false;}
- if(r.brakes.some(x=>Number(x.pad)<0||Number(x.rotor)<0)||r.trailer.some(x=>(x.pad!==''&&Number(x.pad)<0)||(x.rotor!==''&&Number(x.rotor)<0))){alert('Measurements cannot be negative.');return false;}
+ if(r.brakes.some(x=>x.pad===''||(x.rotor===''&&!x.rotorNA))){alert('All four front and rear pad measurements are required. Enter a rotor measurement or select Backing plate where no rotor measurement is possible.');return false;}
+ if(r.brakes.some(x=>Number(x.pad)<0||(x.rotor!==''&&Number(x.rotor)<0))||r.trailer.some(x=>(x.pad!==''&&Number(x.pad)<0)||(x.rotor!==''&&Number(x.rotor)<0))){alert('Measurements cannot be negative.');return false;}
  return true;
 }
 function resetForm(){editingId=null;initForm();$('bus').value='';$('kms').value='';$('service').value='';$('notes').value='';$('saveRecord').textContent='Save Service Record';$('formStatus').textContent='* Required fields must be completed.';}
@@ -290,9 +300,9 @@ function viewSummary(id){
  };
  const brakeCard=x=>`<div class="summary-brake"><h4>${esc(x.position)}</h4><div class="summary-measures">
    <div class="summary-measure ${padLevel(x)}"><small>PAD</small><strong>${x.pad===''?'—':esc(x.pad+' '+x.unit)}</strong></div>
-   <div class="summary-measure ${rotorLevel(x)}"><small>ROTOR</small><strong>${x.rotor===''?'—':esc(x.rotor+' mm')}</strong></div>
+   <div class="summary-measure ${rotorLevel(x)}"><small>ROTOR</small><strong>${x.rotorNA?'Backing plate':(x.rotor===''?'—':esc(x.rotor+' mm'))}</strong></div>
   </div></div>`;
- const brakeSection=(title,items)=>items&&items.length?`<div class="summary-section"><h3>${title}</h3><div class="summary-brake-grid">${items.map(brakeCard).join('')}</div></div>`:'';
+ const brakeSection=(title,items)=>{const shown=(items||[]).filter(x=>x.pad!==''||x.rotor!==''||x.rotorNA);return shown.length?`<div class="summary-section"><h3>${title}</h3><div class="summary-brake-grid">${shown.map(brakeCard).join('')}</div></div>`:'';};
  const faults=r.faults&&r.faults.length?r.faults.map(x=>`<div class="summary-fault ${x.done?'done':''}"><div class="summary-fault-title">${x.done?'☑':'☐'} ${esc(x.fault)}</div>${(x.note??x.repair??'')?`<div class="summary-note">${esc(x.note??x.repair)}</div>`:''}</div>`).join(''):'<div class="summary-note">No faults recorded.</div>';
  $('summaryContent').innerHTML=`
   <div class="summary-bus">
